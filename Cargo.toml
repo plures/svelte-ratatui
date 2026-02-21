@@ -1,0 +1,13 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/svelte-ratatui-compiler",
+    "crates/svelte-ratatui-runtime",
+    "crates/svelte-ratatui-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0"
+repository = "https://github.com/plures/svelte-ratatui"
