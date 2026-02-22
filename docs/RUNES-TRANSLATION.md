@@ -225,15 +225,22 @@ pub fn run<C: SvelteComponent>(mut component: C) -> io::Result<()> {
     loop {
         let async_changed = component.poll_async();
         if async_changed || needs_redraw {
-            terminal.draw(|f| component.render(f, f.area()))?;
+            terminal.draw(|frame| {
+                let area = frame.area();
+                component.render(frame, area);
+            })?;
             needs_redraw = false;
         }
         if event::poll(Duration::from_millis(16))? {
             let ev = event::read()?;
-            if let Event::Key(k) = &ev {
-                if k.code == KeyCode::Char('q') { break; }
+            if let Event::Key(key) = &ev
+                && key.code == KeyCode::Char('q')
+            {
+                break;
             }
-            if component.handle_event(ev) { needs_redraw = true; }
+            if component.handle_event(ev) {
+                needs_redraw = true;
+            }
         }
     }
 
