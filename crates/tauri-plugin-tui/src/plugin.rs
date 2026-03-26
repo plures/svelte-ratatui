@@ -32,7 +32,11 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                     let _ = window.hide();
 
                     // Inject TUI mode flag and snapshot listener into the webview
-                    let _ = window.eval(TUI_INIT_JS);
+                    if let Err(e) = window.eval(TUI_INIT_JS) {
+                        log::error!("Failed to inject TUI initialization script into webview: {e}");
+                        let _ = app_handle.exit(1);
+                        return;
+                    }
 
                     // Small delay for JS to register the listener
                     std::thread::sleep(Duration::from_millis(100));
