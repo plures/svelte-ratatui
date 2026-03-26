@@ -78,14 +78,18 @@ impl<'a> HtmlParser<'a> {
     fn parse_nodes(&mut self) -> Vec<IrNode> {
         let mut nodes = Vec::new();
         while self.pos < self.input.len() {
-            // Skip whitespace only when it sits between two tags — i.e. the
-            // first non-whitespace character is '<'. Whitespace that precedes
-            // actual text content is preserved (important for <pre>/<code>).
+            // Skip whitespace only when it is inter-tag formatting (indentation):
+            // we require the whitespace run to contain at least one newline so
+            // that a single space between inline elements (e.g. the space in
+            // `<span>A</span> <span>B</span>`) is preserved as text content.
+            // Purely horizontal whitespace (spaces/tabs with no newline) is
+            // kept, because it can be meaningful inline content.
             if self.peek().is_some_and(|c| c.is_whitespace()) {
                 let saved = self.pos;
                 self.skip_whitespace();
-                if !self.starts_with("<") {
-                    // Whitespace is part of text content — restore position.
+                let skipped = &self.input[saved..self.pos];
+                if !skipped.contains('\n') || !self.starts_with("<") {
+                    // Not inter-tag indentation — restore and treat as text.
                     self.pos = saved;
                 }
             }
@@ -384,6 +388,23 @@ mod tests {
             text_content
         );
         assert!(text_content.contains("Hello"));
+    }
+
+    #[test]
+    fn space_between_adjacent_inline_elements_is_preserved() {
+        // Single space between sibling inline elements is meaningful content —
+        // the parser must NOT swallow it when moving from </span> to <span>.
+        let ir = parse_html("<p><span>A</span> <span>B</span></p>");
+        let root = ir.as_element().unwrap();
+        let p = root.children[0].as_element().unwrap();
+        // Expect three children: <span>A</span>, " ", <span>B</span>
+        assert_eq!(
+            p.children.len(),
+            3,
+            "expected 3 children (span, text, span), got {:?}",
+            p.children.len()
+        );
+        assert_eq!(p.children[1].text_content(), " ");
     }
 
     #[test]
