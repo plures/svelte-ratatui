@@ -7,7 +7,6 @@ license.workspace = true
 
 [dependencies]
 svelte-ratatui-compiler = { path = "../svelte-ratatui-compiler" }
-svelte-ratatui-runtime = { path = "../svelte-ratatui-runtime" }
 ratatui = "0.29"
 crossterm = "0.28"
 serde = { version = "1", features = ["derive"] }
