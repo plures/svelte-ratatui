@@ -238,7 +238,13 @@ fn render_table(frame: &mut Frame, area: Rect, el: &IrElement) {
         .map(|row| Row::new(row.iter().map(|c| Cell::from(c.as_str()))))
         .collect();
 
-    let col_count = header_cells.len().max(1);
+    let col_count = body_rows
+        .iter()
+        .map(|r| r.len())
+        .max()
+        .unwrap_or(0)
+        .max(header_cells.len())
+        .max(1);
     let widths: Vec<RatConstraint> = (0..col_count)
         .map(|_| RatConstraint::Percentage((100 / col_count as u16).max(1)))
         .collect();
@@ -378,21 +384,18 @@ fn render_children_in_layout(
 
 fn resolve_direction(el: &IrElement) -> Direction {
     // Check flex-direction style
-    if let Some(fd) = el.style("flex-direction") {
-        if fd == "row" || fd == "row-reverse" {
-            return Direction::Horizontal;
-        }
+    if let Some(fd) = el.style("flex-direction")
+        && (fd == "row" || fd == "row-reverse")
+    {
+        return Direction::Horizontal;
     }
-    // Check if display:flex (default to row in CSS, but we default to vertical for terminal)
-    if let Some(display) = el.style("display") {
-        if display == "flex" || display == "inline-flex" {
-            // Check flex-direction, otherwise default to row for flex
-            return if el.style("flex-direction").is_none() {
-                Direction::Horizontal
-            } else {
-                Direction::Vertical
-            };
-        }
+    // Check if display:flex — when flex-direction is unspecified we mirror the
+    // CSS default (row → horizontal). Explicit column/column-reverse is caught
+    // above via the flex-direction check.
+    if let Some(display) = el.style("display")
+        && (display == "flex" || display == "inline-flex")
+    {
+        return Direction::Horizontal;
     }
     Direction::Vertical
 }

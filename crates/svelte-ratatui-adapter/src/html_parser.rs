@@ -78,7 +78,18 @@ impl<'a> HtmlParser<'a> {
     fn parse_nodes(&mut self) -> Vec<IrNode> {
         let mut nodes = Vec::new();
         while self.pos < self.input.len() {
-            self.skip_whitespace();
+            // Skip whitespace only when it sits between two tags — i.e. the
+            // first non-whitespace character is '<'. Whitespace that precedes
+            // actual text content is preserved (important for <pre>/<code>).
+            if self.peek().is_some_and(|c| c.is_whitespace()) {
+                let saved = self.pos;
+                self.skip_whitespace();
+                if !self.starts_with("<") {
+                    // Whitespace is part of text content — restore position.
+                    self.pos = saved;
+                }
+            }
+
             if self.pos >= self.input.len() {
                 break;
             }
@@ -97,10 +108,10 @@ impl<'a> HtmlParser<'a> {
                     nodes.push(el);
                 }
             } else {
-                // Text node
+                // Text node — preserve content exactly, only drop truly empty strings
                 let text = self.consume_until("<");
                 let decoded = decode_entities(&text);
-                if !decoded.trim().is_empty() {
+                if !decoded.is_empty() {
                     nodes.push(IrNode::text(decoded));
                 }
             }
@@ -211,11 +222,13 @@ impl<'a> HtmlParser<'a> {
             };
 
             if key == "style" {
-                // Parse inline style into key-value pairs
+                // Parse inline style into key-value pairs; normalize keys to
+                // lowercase so lookups like `el.style("color")` always work
+                // regardless of the HTML author's casing.
                 for part in value.split(';') {
                     let part = part.trim();
                     if let Some((k, v)) = part.split_once(':') {
-                        styles.insert(k.trim().to_string(), v.trim().to_string());
+                        styles.insert(k.trim().to_lowercase(), v.trim().to_string());
                     }
                 }
             } else {
