@@ -6,7 +6,7 @@
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use crossterm::event::{self, Event, KeyCode};
 use tauri::plugin::{Builder, TauriPlugin};
@@ -87,9 +87,28 @@ const TUI_INIT_JS: &str = r#"
 })();
 "#;
 
+/// RAII guard that calls `ratatui::restore()` when dropped.
+///
+/// This guarantees the terminal is restored to its original state even when
+/// `run_tui_loop` exits early via a `?` operator or a panic.
+struct RestoreOnDrop;
+
+impl Drop for RestoreOnDrop {
+    fn drop(&mut self) {
+        ratatui::restore();
+    }
+}
+
+/// Target frame duration (~60 fps).
+const FRAME_DURATION: Duration = Duration::from_millis(16);
+
 /// The main terminal render loop.
 fn run_tui_loop<R: Runtime>(window: &WebviewWindow<R>) -> std::io::Result<()> {
     let mut terminal = ratatui::init();
+
+    // Ensures ratatui::restore() is called on every exit path, including
+    // early returns from `?` and panics.
+    let _restore = RestoreOnDrop;
 
     // Shared snapshot buffer — updated by event listener, read by render loop
     let snapshot_buf: Arc<Mutex<Option<DomSnapshot>>> = Arc::new(Mutex::new(None));
@@ -109,13 +128,37 @@ fn run_tui_loop<R: Runtime>(window: &WebviewWindow<R>) -> std::io::Result<()> {
     let mut frame_count: u64 = 0;
 
     while running.load(Ordering::Relaxed) {
-        // Request a DOM snapshot every frame
+        let frame_start = Instant::now();
+
+        // Request a DOM snapshot once per frame.
         let _ = window.emit("tui://request-snapshot", ());
 
-        // Small delay to let the JS respond
-        std::thread::sleep(Duration::from_millis(2));
+        // Poll for input for the remainder of the frame budget (~16 ms).
+        // This provides frame pacing and gives the webview time to respond
+        // to the snapshot request before we read the buffer below.
+        let poll_timeout = FRAME_DURATION.saturating_sub(frame_start.elapsed());
+        if event::poll(poll_timeout)? {
+            let ev = event::read()?;
 
-        // Check if we got a new snapshot
+            // Ctrl+C exits
+            if let Event::Key(key) = &ev {
+                if key.code == KeyCode::Char('c')
+                    && key
+                        .modifiers
+                        .contains(crossterm::event::KeyModifiers::CONTROL)
+                {
+                    running.store(false, Ordering::Relaxed);
+                    break;
+                }
+            }
+
+            // Forward input to webview
+            if let Some(js) = event_to_js(&ev) {
+                let _ = window.eval(&js);
+            }
+        }
+
+        // Process any snapshot that arrived during this frame
         let new_html = {
             let mut buf = snapshot_buf.lock().unwrap();
             buf.take().map(|s| s.html)
@@ -139,31 +182,9 @@ fn run_tui_loop<R: Runtime>(window: &WebviewWindow<R>) -> std::io::Result<()> {
             })?;
         }
 
-        // Poll for terminal input (~60fps)
-        if event::poll(Duration::from_millis(14))? {
-            let ev = event::read()?;
-
-            // Ctrl+C exits
-            if let Event::Key(key) = &ev {
-                if key.code == KeyCode::Char('c')
-                    && key
-                        .modifiers
-                        .contains(crossterm::event::KeyModifiers::CONTROL)
-                {
-                    running.store(false, Ordering::Relaxed);
-                    break;
-                }
-            }
-
-            // Forward input to webview
-            if let Some(js) = event_to_js(&ev) {
-                let _ = window.eval(&js);
-            }
-        }
-
         frame_count += 1;
     }
 
-    ratatui::restore();
     Ok(())
+    // `_restore` drops here (or on any `?` return above), calling ratatui::restore()
 }
