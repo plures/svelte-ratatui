@@ -54,40 +54,70 @@ pub const DOM_SNAPSHOT_JS: &str = r#"
 })()
 "#;
 
-/// JavaScript template for dispatching a keyboard event into the webview.
+/// Escape a Rust string for safe inclusion in a single-quoted JavaScript string.
+/// This escapes backslashes and single quotes.
+fn js_single_quoted(s: &str) -> String {
+    s.replace('\\', "\\\\").replace('\'', "\\'")
+}
+
+/// Build JavaScript for dispatching a keyboard event into the webview.
 ///
-/// Call with `format!(DISPATCH_KEY_JS, key, code, shift, ctrl, alt, meta)`.
-pub const DISPATCH_KEY_JS: &str = r#"
-(function() {
+/// Returns a snippet suitable for passing to `webview.eval(...)`.
+pub fn build_dispatch_key_js(
+    key: &str,
+    code: &str,
+    shift: bool,
+    ctrl: bool,
+    alt: bool,
+    meta: bool,
+) -> String {
+    let key = js_single_quoted(key);
+    let code = js_single_quoted(code);
+
+    format!(
+        r#"(function() {{
     const target = document.activeElement || document.body;
     target.dispatchEvent(new KeyboardEvent('keydown', {{
-        key: '{}',
-        code: '{}',
-        shiftKey: {},
-        ctrlKey: {},
-        altKey: {},
-        metaKey: {},
+        key: '{key}',
+        code: '{code}',
+        shiftKey: {shift},
+        ctrlKey: {ctrl},
+        altKey: {alt},
+        metaKey: {meta},
         bubbles: true,
         cancelable: true
     }}));
-}})()
-"#;
+}})()"#,
+        key = key,
+        code = code,
+        shift = shift,
+        ctrl = ctrl,
+        alt = alt,
+        meta = meta,
+    )
+}
 
-/// JavaScript template for dispatching a click event at coordinates.
-pub const DISPATCH_CLICK_JS: &str = r#"
-(function() {
-    const el = document.elementFromPoint({}, {});
-    if (el) {
+/// Build JavaScript for dispatching a click event at viewport coordinates.
+///
+/// `x` and `y` are CSS pixel coordinates in the client viewport.
+pub fn build_dispatch_click_js(x: f64, y: f64) -> String {
+    format!(
+        r#"(function() {{
+    const el = document.elementFromPoint({x}, {y});
+    if (el) {{
         el.click();
-        el.dispatchEvent(new MouseEvent('click', {
-            clientX: {},
-            clientY: {},
+        el.dispatchEvent(new MouseEvent('click', {{
+            clientX: {x},
+            clientY: {y},
             bubbles: true,
             cancelable: true
-        }));
-    }
-})()
-"#;
+        }}));
+    }}
+}})()"#,
+        x = x,
+        y = y,
+    )
+}
 
 /// JavaScript for dispatching a focus event to the next focusable element.
 pub const FOCUS_NEXT_JS: &str = r#"
