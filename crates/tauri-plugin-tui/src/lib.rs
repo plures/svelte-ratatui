@@ -23,7 +23,7 @@
 //! 2. The terminal is initialized with ratatui/crossterm
 //! 3. A render loop polls the webview DOM and draws to the terminal
 //! 4. Terminal input is forwarded back to the webview as DOM events
-//! 5. Ctrl+C or 'q' exits the app
+//! 5. Ctrl+C exits the app
 
 mod plugin;
 
