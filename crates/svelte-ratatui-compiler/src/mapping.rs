@@ -383,15 +383,14 @@ fn render_children_in_layout(
 }
 
 fn resolve_direction(el: &IrElement) -> Direction {
-    // Check flex-direction style
-    if let Some(fd) = el.style("flex-direction")
-        && (fd == "row" || fd == "row-reverse")
-    {
-        return Direction::Horizontal;
+    // An explicit flex-direction always takes priority.
+    if let Some(fd) = el.style("flex-direction") {
+        return match fd {
+            "column" | "column-reverse" => Direction::Vertical,
+            _ => Direction::Horizontal, // row, row-reverse, or unrecognised
+        };
     }
-    // Check if display:flex — when flex-direction is unspecified we mirror the
-    // CSS default (row → horizontal). Explicit column/column-reverse is caught
-    // above via the flex-direction check.
+    // No explicit flex-direction: `display:flex` mirrors the CSS default (row → horizontal).
     if let Some(display) = el.style("display")
         && (display == "flex" || display == "inline-flex")
     {
@@ -592,5 +591,126 @@ mod tests {
         });
         assert!(output.contains("• Item A"));
         assert!(output.contains("• Item B"));
+    }
+
+    // ── resolve_direction regression tests ───────────────────────────────────
+
+    fn make_div(styles: &[(&str, &str)]) -> IrElement {
+        IrElement {
+            tag: "div".into(),
+            attrs: HashMap::new(),
+            styles: styles
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
+            children: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn flex_row_resolves_horizontal() {
+        let el = make_div(&[("display", "flex"), ("flex-direction", "row")]);
+        assert_eq!(resolve_direction(&el), Direction::Horizontal);
+    }
+
+    #[test]
+    fn flex_row_reverse_resolves_horizontal() {
+        let el = make_div(&[("display", "flex"), ("flex-direction", "row-reverse")]);
+        assert_eq!(resolve_direction(&el), Direction::Horizontal);
+    }
+
+    #[test]
+    fn flex_column_resolves_vertical() {
+        let el = make_div(&[("display", "flex"), ("flex-direction", "column")]);
+        assert_eq!(resolve_direction(&el), Direction::Vertical);
+    }
+
+    #[test]
+    fn flex_column_reverse_resolves_vertical() {
+        let el = make_div(&[("display", "flex"), ("flex-direction", "column-reverse")]);
+        assert_eq!(resolve_direction(&el), Direction::Vertical);
+    }
+
+    #[test]
+    fn flex_no_direction_defaults_to_horizontal() {
+        // CSS default for display:flex with no explicit flex-direction is row.
+        let el = make_div(&[("display", "flex")]);
+        assert_eq!(resolve_direction(&el), Direction::Horizontal);
+    }
+
+    #[test]
+    fn non_flex_defaults_to_vertical() {
+        let el = make_div(&[]);
+        assert_eq!(resolve_direction(&el), Direction::Vertical);
+    }
+
+    // ── render_table regression — body rows wider than header ────────────────
+
+    #[test]
+    fn renders_table_body_wider_than_header() {
+        // Header has 1 cell; body rows have 3 cells each.
+        // Previously col_count was clamped to header length (1),
+        // silently truncating the extra body columns.
+        let table_el = IrElement {
+            tag: "table".into(),
+            attrs: HashMap::new(),
+            styles: HashMap::new(),
+            children: vec![
+                IrNode::Element(IrElement {
+                    tag: "thead".into(),
+                    attrs: HashMap::new(),
+                    styles: HashMap::new(),
+                    children: vec![IrNode::Element(IrElement {
+                        tag: "tr".into(),
+                        attrs: HashMap::new(),
+                        styles: HashMap::new(),
+                        children: vec![IrNode::Element(IrElement {
+                            tag: "th".into(),
+                            attrs: HashMap::new(),
+                            styles: HashMap::new(),
+                            children: vec![IrNode::text("H1")],
+                        })],
+                    })],
+                }),
+                IrNode::Element(IrElement {
+                    tag: "tbody".into(),
+                    attrs: HashMap::new(),
+                    styles: HashMap::new(),
+                    children: vec![IrNode::Element(IrElement {
+                        tag: "tr".into(),
+                        attrs: HashMap::new(),
+                        styles: HashMap::new(),
+                        children: vec![
+                            IrNode::Element(IrElement {
+                                tag: "td".into(),
+                                attrs: HashMap::new(),
+                                styles: HashMap::new(),
+                                children: vec![IrNode::text("A")],
+                            }),
+                            IrNode::Element(IrElement {
+                                tag: "td".into(),
+                                attrs: HashMap::new(),
+                                styles: HashMap::new(),
+                                children: vec![IrNode::text("B")],
+                            }),
+                            IrNode::Element(IrElement {
+                                tag: "td".into(),
+                                attrs: HashMap::new(),
+                                styles: HashMap::new(),
+                                children: vec![IrNode::text("C")],
+                            }),
+                        ],
+                    })],
+                }),
+            ],
+        };
+        // Render should not panic and should display the extra body cells.
+        let node = IrNode::Element(table_el);
+        let output = test_frame_with(60, 6, |frame, area| {
+            render_ir(frame, area, &node);
+        });
+        assert!(output.contains("A"));
+        assert!(output.contains("B"));
+        assert!(output.contains("C"));
     }
 }

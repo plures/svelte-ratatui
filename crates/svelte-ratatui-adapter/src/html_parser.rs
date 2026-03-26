@@ -368,4 +368,33 @@ mod tests {
         assert_eq!(div.children.len(), 1);
         assert_eq!(div.children[0].text_content(), "visible");
     }
+
+    #[test]
+    fn space_before_inline_tag_is_preserved() {
+        // "Hello " is consumed by consume_until('<'), so the trailing space
+        // becomes part of the text node — not dropped by whitespace skipping.
+        let ir = parse_html("<p>Hello <b>world</b></p>");
+        let root = ir.as_element().unwrap();
+        let p = root.children[0].as_element().unwrap();
+        // First child must be text "Hello " (with space)
+        let text_content = p.children[0].text_content();
+        assert!(
+            text_content.ends_with(' '),
+            "expected trailing space in text node, got {:?}",
+            text_content
+        );
+        assert!(text_content.contains("Hello"));
+    }
+
+    #[test]
+    fn style_key_mixed_case_normalised_to_lowercase() {
+        // Inline style keys like "Color" or "Font-Weight" must be stored as
+        // lowercase so that IrStyle::from_element lookups work correctly.
+        let ir =
+            parse_html(r#"<div style="Color: red; Font-Weight: bold;">text</div>"#);
+        let root = ir.as_element().unwrap();
+        let div = root.children[0].as_element().unwrap();
+        assert_eq!(div.style("color"), Some("red"));
+        assert_eq!(div.style("font-weight"), Some("bold"));
+    }
 }
