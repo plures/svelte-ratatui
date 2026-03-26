@@ -78,7 +78,22 @@ impl<'a> HtmlParser<'a> {
     fn parse_nodes(&mut self) -> Vec<IrNode> {
         let mut nodes = Vec::new();
         while self.pos < self.input.len() {
-            self.skip_whitespace();
+            // Skip whitespace only when it is inter-tag formatting (indentation):
+            // we require the whitespace run to contain at least one newline so
+            // that a single space between inline elements (e.g. the space in
+            // `<span>A</span> <span>B</span>`) is preserved as text content.
+            // Purely horizontal whitespace (spaces/tabs with no newline) is
+            // kept, because it can be meaningful inline content.
+            if self.peek().is_some_and(|c| c.is_whitespace()) {
+                let saved = self.pos;
+                self.skip_whitespace();
+                let skipped = &self.input[saved..self.pos];
+                if !skipped.contains('\n') || !self.starts_with("<") {
+                    // Not inter-tag indentation — restore and treat as text.
+                    self.pos = saved;
+                }
+            }
+
             if self.pos >= self.input.len() {
                 break;
             }
@@ -97,10 +112,10 @@ impl<'a> HtmlParser<'a> {
                     nodes.push(el);
                 }
             } else {
-                // Text node
+                // Text node — preserve content exactly, only drop truly empty strings
                 let text = self.consume_until("<");
                 let decoded = decode_entities(&text);
-                if !decoded.trim().is_empty() {
+                if !decoded.is_empty() {
                     nodes.push(IrNode::text(decoded));
                 }
             }
@@ -211,11 +226,13 @@ impl<'a> HtmlParser<'a> {
             };
 
             if key == "style" {
-                // Parse inline style into key-value pairs
+                // Parse inline style into key-value pairs; normalize keys to
+                // lowercase so lookups like `el.style("color")` always work
+                // regardless of the HTML author's casing.
                 for part in value.split(';') {
                     let part = part.trim();
                     if let Some((k, v)) = part.split_once(':') {
-                        styles.insert(k.trim().to_string(), v.trim().to_string());
+                        styles.insert(k.trim().to_lowercase(), v.trim().to_string());
                     }
                 }
             } else {
@@ -354,5 +371,51 @@ mod tests {
         let div = root.children[0].as_element().unwrap();
         assert_eq!(div.children.len(), 1);
         assert_eq!(div.children[0].text_content(), "visible");
+    }
+
+    #[test]
+    fn space_before_inline_tag_is_preserved() {
+        // "Hello " is consumed by consume_until('<'), so the trailing space
+        // becomes part of the text node — not dropped by whitespace skipping.
+        let ir = parse_html("<p>Hello <b>world</b></p>");
+        let root = ir.as_element().unwrap();
+        let p = root.children[0].as_element().unwrap();
+        // First child must be text "Hello " (with space)
+        let text_content = p.children[0].text_content();
+        assert!(
+            text_content.ends_with(' '),
+            "expected trailing space in text node, got {:?}",
+            text_content
+        );
+        assert!(text_content.contains("Hello"));
+    }
+
+    #[test]
+    fn space_between_adjacent_inline_elements_is_preserved() {
+        // Single space between sibling inline elements is meaningful content —
+        // the parser must NOT swallow it when moving from </span> to <span>.
+        let ir = parse_html("<p><span>A</span> <span>B</span></p>");
+        let root = ir.as_element().unwrap();
+        let p = root.children[0].as_element().unwrap();
+        // Expect three children: <span>A</span>, " ", <span>B</span>
+        assert_eq!(
+            p.children.len(),
+            3,
+            "expected 3 children (span, text, span), got {:?}",
+            p.children.len()
+        );
+        assert_eq!(p.children[1].text_content(), " ");
+    }
+
+    #[test]
+    fn style_key_mixed_case_normalised_to_lowercase() {
+        // Inline style keys like "Color" or "Font-Weight" must be stored as
+        // lowercase so that IrStyle::from_element lookups work correctly.
+        let ir =
+            parse_html(r#"<div style="Color: red; Font-Weight: bold;">text</div>"#);
+        let root = ir.as_element().unwrap();
+        let div = root.children[0].as_element().unwrap();
+        assert_eq!(div.style("color"), Some("red"));
+        assert_eq!(div.style("font-weight"), Some("bold"));
     }
 }

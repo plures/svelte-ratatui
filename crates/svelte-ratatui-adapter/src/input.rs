@@ -49,20 +49,13 @@ fn key_to_js(key: &KeyEvent) -> Option<String> {
     let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
     let alt = key.modifiers.contains(KeyModifiers::ALT);
 
-    Some(format!(
-        r#"(function(){{
-    const target = document.activeElement || document.body;
-    target.dispatchEvent(new KeyboardEvent('keydown', {{
-        key: '{js_key}',
-        code: '{js_code}',
-        shiftKey: {shift},
-        ctrlKey: {ctrl},
-        altKey: {alt},
-        metaKey: false,
-        bubbles: true,
-        cancelable: true
-    }}));
-}})()"#,
+    Some(dom_reader::build_dispatch_key_js(
+        &js_key,
+        &js_code,
+        shift,
+        ctrl,
+        alt,
+        false,
     ))
 }
 
@@ -73,17 +66,9 @@ fn mouse_to_js(mouse: &MouseEvent) -> Option<String> {
             let y = mouse.row;
             // Convert terminal coordinates to approximate CSS pixel coordinates.
             // Assumes ~8px per character width, ~16px per row.
-            let css_x = x as u32 * 8;
-            let css_y = y as u32 * 16;
-            Some(format!(
-                r#"(function(){{
-    const el = document.elementFromPoint({css_x}, {css_y});
-    if (el) {{
-        el.click();
-        el.focus();
-    }}
-}})()"#,
-            ))
+            let css_x = x as f64 * 8.0;
+            let css_y = y as f64 * 16.0;
+            Some(dom_reader::build_dispatch_click_js(css_x, css_y))
         }
         MouseEventKind::ScrollUp => Some(
             r#"(function(){

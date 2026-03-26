@@ -54,10 +54,39 @@ pub const DOM_SNAPSHOT_JS: &str = r#"
 })()
 "#;
 
-/// Escape a Rust string for safe inclusion in a single-quoted JavaScript string.
-/// This escapes backslashes and single quotes.
+/// Escape a Rust `&str` for safe embedding in a single-quoted JavaScript string.
+///
+/// Escapes backslashes, single quotes, and all characters that would break a
+/// JS string literal or enable injection, including ASCII control characters
+/// and the Unicode line/paragraph separator code points U+2028 and U+2029
+/// (which are line terminators in JS even inside string literals).
 fn js_single_quoted(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('\'', "\\'")
+    use std::fmt::Write;
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '\\' => out.push_str("\\\\"),
+            '\'' => out.push_str("\\'"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            '\x08' => out.push_str("\\b"),   // backspace
+            '\x0C' => out.push_str("\\f"),   // form feed
+            // NUL: use \\x00 rather than \\0 to avoid octal mis-interpretation
+            // if the escaped string is followed by a digit (e.g. \01 = octal).
+            '\x00' => out.push_str("\\x00"),
+            // U+2028 LINE SEPARATOR and U+2029 PARAGRAPH SEPARATOR are
+            // treated as line terminators inside JS string literals.
+            '\u{2028}' => out.push_str("\\u2028"),
+            '\u{2029}' => out.push_str("\\u2029"),
+            // Remaining ASCII control characters (U+0001–U+001F, U+007F)
+            c if (c as u32) < 0x20 || c == '\x7F' => {
+                write!(out, "\\u{:04X}", c as u32).unwrap();
+            }
+            c => out.push(c),
+        }
+    }
+    out
 }
 
 /// Build JavaScript for dispatching a keyboard event into the webview.
@@ -73,9 +102,8 @@ pub fn build_dispatch_key_js(
 ) -> String {
     let key = js_single_quoted(key);
     let code = js_single_quoted(code);
-
     format!(
-        r#"(function() {{
+        r#"(function(){{
     const target = document.activeElement || document.body;
     target.dispatchEvent(new KeyboardEvent('keydown', {{
         key: '{key}',
@@ -87,35 +115,25 @@ pub fn build_dispatch_key_js(
         bubbles: true,
         cancelable: true
     }}));
-}})()"#,
-        key = key,
-        code = code,
-        shift = shift,
-        ctrl = ctrl,
-        alt = alt,
-        meta = meta,
+}})()"#
     )
 }
 
 /// Build JavaScript for dispatching a click event at viewport coordinates.
 ///
+/// Triggers `el.click()` (synthetic click that fires event handlers) and then
+/// focuses the element so subsequent keyboard events are routed correctly.
+///
 /// `x` and `y` are CSS pixel coordinates in the client viewport.
 pub fn build_dispatch_click_js(x: f64, y: f64) -> String {
     format!(
-        r#"(function() {{
+        r#"(function(){{
     const el = document.elementFromPoint({x}, {y});
     if (el) {{
         el.click();
-        el.dispatchEvent(new MouseEvent('click', {{
-            clientX: {x},
-            clientY: {y},
-            bubbles: true,
-            cancelable: true
-        }}));
+        el.focus();
     }}
-}})()"#,
-        x = x,
-        y = y,
+}})()"#
     )
 }
 
