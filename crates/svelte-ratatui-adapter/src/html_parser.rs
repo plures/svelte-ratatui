@@ -288,12 +288,12 @@ impl<'a> HtmlParser<'a> {
 
 /// Decode basic HTML entities.
 fn decode_entities(s: &str) -> String {
-    s.replace("&amp;", "&")
-        .replace("&lt;", "<")
+    s.replace("&lt;", "<")
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
         .replace("&#39;", "'")
         .replace("&nbsp;", " ")
+        .replace("&amp;", "&")
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
