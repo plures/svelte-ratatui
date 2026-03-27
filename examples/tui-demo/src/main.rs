@@ -116,22 +116,29 @@ impl SvelteComponent for TuiDemo {
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::Yellow));
 
+        let selected = self.list_state.selected();
+
         let list_items: Vec<ListItem> = self
             .items
             .iter()
-            .map(|s| ListItem::new(s.as_str()))
+            .enumerate()
+            .map(|(idx, s)| {
+                let content = s.as_str();
+                if Some(idx) == selected {
+                    ListItem::new(content).style(
+                        Style::default()
+                            .bg(Color::DarkGray)
+                            .add_modifier(Modifier::BOLD),
+                    )
+                } else {
+                    ListItem::new(content)
+                }
+            })
             .collect();
 
-        let list = List::new(list_items)
-            .block(list_block)
-            .highlight_style(
-                Style::default()
-                    .bg(Color::DarkGray)
-                    .add_modifier(Modifier::BOLD),
-            )
-            .highlight_symbol("▶ ");
+        let list = List::new(list_items).block(list_block);
 
-        frame.render_stateful_widget(list, chunks[1], &mut self.list_state.clone());
+        frame.render_widget(list, chunks[1]);
     }
 
     fn handle_event(&mut self, event: Event) -> bool {
