@@ -1,3 +1,8 @@
+## [0.4.0] — 2026-03-27
+
+- feat: tauri-plugin-tui config API, TUI demo, and CLI scaffolding (#13) (6bf05c5)
+- docs: add ROADMAP.md (5a4e383)
+
 ## [0.3.0] — 2026-03-27
 
 - feat: implement IR, mapping, and TUI adapter crates (#5) (7584fd9)
