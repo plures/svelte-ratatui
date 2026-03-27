@@ -24,7 +24,24 @@
 //! 3. A render loop polls the webview DOM and draws to the terminal
 //! 4. Terminal input is forwarded back to the webview as DOM events
 //! 5. Ctrl+C exits the app
+//!
+//! # Custom configuration
+//!
+//! ```rust,ignore
+//! use tauri_plugin_tui::{TuiConfig, TuiTheme, init_with_config};
+//!
+//! let config = TuiConfig {
+//!     theme: TuiTheme::dark(),
+//!     ..TuiConfig::default()
+//! };
+//! tauri::Builder::default()
+//!     .plugin(init_with_config(config))
+//!     .run(tauri::generate_context!())
+//!     .expect("error running app");
+//! ```
 
 mod plugin;
+pub mod tui_config;
 
-pub use plugin::init;
+pub use plugin::{init, init_with_config};
+pub use tui_config::{BorderStyle, TuiConfig, TuiTheme, WidgetOverrides};

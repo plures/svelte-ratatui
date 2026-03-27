@@ -17,15 +17,30 @@ use svelte_ratatui_adapter::html_parser::parse_html;
 use svelte_ratatui_adapter::input::event_to_js;
 use svelte_ratatui_compiler::mapping::render_ir;
 
-/// Initialize the TUI plugin.
+use crate::tui_config::TuiConfig;
+
+/// Initialize the TUI plugin with default configuration.
+///
+/// Equivalent to `init_with_config(TuiConfig::default())`.
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
+    init_with_config(TuiConfig::default())
+}
+
+/// Initialize the TUI plugin with a custom [`TuiConfig`].
+///
+/// Use this when you need to adjust the startup delay, target frame rate,
+/// theme, or widget mapping overrides.
+pub fn init_with_config<R: Runtime>(config: TuiConfig) -> TauriPlugin<R> {
     Builder::new("tui")
         .setup(|app, _api| {
             let app_handle = app.clone();
+            let startup_delay = Duration::from_millis(config.startup_delay_ms);
+            let frame_duration =
+                Duration::from_millis(1000 / u64::from(config.target_fps.max(1)));
 
             std::thread::spawn(move || {
                 // Give Svelte time to mount
-                std::thread::sleep(Duration::from_millis(800));
+                std::thread::sleep(startup_delay);
 
                 if let Some(window) = app_handle.get_webview_window("main") {
                     // Hide the GUI window
@@ -42,7 +57,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                     std::thread::sleep(Duration::from_millis(100));
 
                     // Run the terminal render loop
-                    if let Err(e) = run_tui_loop(&window) {
+                    if let Err(e) = run_tui_loop(&window, frame_duration) {
                         log::error!("TUI loop exited with error: {e}");
                     }
 
@@ -103,11 +118,8 @@ impl Drop for RestoreOnDrop {
     }
 }
 
-/// Target frame duration (~60 fps).
-const FRAME_DURATION: Duration = Duration::from_millis(16);
-
 /// The main terminal render loop.
-fn run_tui_loop<R: Runtime>(window: &WebviewWindow<R>) -> std::io::Result<()> {
+fn run_tui_loop<R: Runtime>(window: &WebviewWindow<R>, frame_duration: Duration) -> std::io::Result<()> {
     let mut terminal = ratatui::init();
 
     // Ensures ratatui::restore() is called on every exit path, including
@@ -137,10 +149,10 @@ fn run_tui_loop<R: Runtime>(window: &WebviewWindow<R>) -> std::io::Result<()> {
         // Request a DOM snapshot once per frame.
         let _ = window.emit("tui://request-snapshot", ());
 
-        // Poll for input for the remainder of the frame budget (~16 ms).
+        // Poll for input for the remainder of the frame budget.
         // This provides frame pacing and gives the webview time to respond
         // to the snapshot request before we read the buffer below.
-        let poll_timeout = FRAME_DURATION.saturating_sub(frame_start.elapsed());
+        let poll_timeout = frame_duration.saturating_sub(frame_start.elapsed());
         if event::poll(poll_timeout)? {
             let ev = event::read()?;
 

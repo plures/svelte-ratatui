@@ -6,6 +6,7 @@ members = [
     "crates/svelte-ratatui-adapter",
     "crates/svelte-ratatui-cli",
     "crates/tauri-plugin-tui",
+    "examples/tui-demo",
 ]
 
 [workspace.package]
