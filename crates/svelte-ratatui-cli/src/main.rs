@@ -42,16 +42,17 @@ enum Commands {
         input: String,
     },
 
-    /// Scaffold TUI integration files into an existing svelte-tauri-template project.
+    /// (Planned) Scaffold TUI integration files into an existing svelte-tauri-template project.
     ///
-    /// Creates:
-    ///   - `plugins/svelte-ratatui/` with Cargo and Vite config
-    ///   - `src/lib/components/TuiDemo.svelte` demo component
-    ///   - `src/routes/tui-demo/` page route
-    ///   - Wires `tauri-plugin-tui` into `src-tauri/Cargo.toml`
+    /// This command is not yet implemented and currently only reports what it would do.
+    /// In a future release it will:
+    ///   - Create `plugins/svelte-ratatui/` with Cargo and Vite config
+    ///   - Add a `src/lib/components/TuiDemo.svelte` demo component
+    ///   - Add a `src/routes/tui-demo/` page route
+    ///   - Wire `tauri-plugin-tui` into `src-tauri/Cargo.toml`
     ///
     /// TUI support is enabled by default (matches Plures convention).
-    /// Pass `--no-tui` to skip TUI scaffolding.
+    /// Pass `--no-tui` to skip TUI scaffolding when the feature is implemented.
     Scaffold {
         /// Target project directory (defaults to current directory).
         #[arg(default_value = ".")]
