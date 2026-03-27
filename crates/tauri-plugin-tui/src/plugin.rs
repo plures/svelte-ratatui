@@ -30,7 +30,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
 ///
 /// Use this when you need to adjust the startup delay or target frame rate.
 pub fn init_with_config<R: Runtime>(config: TuiConfig) -> TauriPlugin<R> {
-    
     Builder::new("tui")
         .setup(|app, _api| {
             let app_handle = app.clone();

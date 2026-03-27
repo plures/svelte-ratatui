@@ -7,7 +7,7 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use tauri_plugin_tui::{TuiConfig, TuiTheme, init_with_config};
+//! use tauri_plugin_tui::{BorderStyle, TuiConfig, TuiTheme, init_with_config};
 //!
 //! let config = TuiConfig {
 //!     theme: TuiTheme {
@@ -121,17 +121,21 @@ pub struct WidgetOverrides {
 /// needed. The default uses sensible terminal defaults.
 #[derive(Debug, Clone)]
 pub struct TuiConfig {
-pub struct TuiConfig {
-    /// Colour and decoration theme.
+    /// Color and decoration theme.
+    ///
+    /// Reserved for future use — the fields are validated and stored, but
+    /// theme application to ratatui widgets is not yet implemented.
     pub theme: TuiTheme,
     /// Per-element widget mapping overrides.
+    ///
+    /// Reserved for future use — stored but not yet applied to the rendering path.
     pub widget_overrides: WidgetOverrides,
     /// Milliseconds to wait after Tauri starts before injecting TUI scripts.
     /// Lower values speed up startup but may cause a blank first frame if
     /// Svelte has not finished mounting.  Default: `800`.
     pub startup_delay_ms: u64,
-    /// Target frame rate.  The event loop sleeps for `1000 / fps` ms between
-    /// frames.  Default: `60`.
+    /// Target frame rate.  The event loop budget per frame is `1.0 / fps`
+    /// seconds.  Default: `60`.
     pub target_fps: u32,
 }
 

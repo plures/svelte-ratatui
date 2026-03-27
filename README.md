@@ -80,20 +80,21 @@ ratatui widgets → terminal
    ./my-app --tui
    ```
 
-### Custom theme and frame rate
+### Custom frame rate
 
 ```rust
-use tauri_plugin_tui::{TuiConfig, TuiTheme, init_with_config};
+use tauri_plugin_tui::{TuiConfig, init_with_config};
 
 tauri::Builder::default()
     .plugin(init_with_config(TuiConfig {
-        theme: TuiTheme::dark(),
         target_fps: 30,
         ..TuiConfig::default()
     }))
     .run(tauri::generate_context!())
     .expect("error running app");
 ```
+
+> **Note:** `TuiConfig` also accepts `theme` (`TuiTheme`) and `widget_overrides` fields — these are stored and validated but theme application to ratatui widgets is not yet implemented. They are available for forward-compatible configuration today.
 
 ### Svelte component conventions
 
