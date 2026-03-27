@@ -527,43 +527,6 @@ fn collect_lines_with_style(
         }
     }
 }
-fn collect_spans_with_style(
-    node: &IrNode,
-    spans: &mut Vec<Span<'static>>,
-    parent_style: Style,
-) {
-    match node {
-        IrNode::Text(s) => {
-            // Apply any accumulated style from ancestor elements.
-            spans.push(Span::styled(s.clone(), parent_style));
-        }
-        IrNode::Element(el) => {
-            // Style computed from this element alone.
-            let element_style = to_ratatui_style(&IrStyle::from_element(el));
-
-            // Merge parent + element styles so that explicit element properties
-            // override inherited ones while leaving others intact.
-            let mut combined_style = parent_style.patch(element_style);
-
-            // Semantic inline tags add modifiers regardless of child structure.
-            combined_style = match el.tag.as_str() {
-                "strong" | "b" => combined_style.add_modifier(Modifier::BOLD),
-                "em" | "i" => combined_style.add_modifier(Modifier::ITALIC),
-                "u" => combined_style.add_modifier(Modifier::UNDERLINED),
-                _ => combined_style,
-            };
-
-            for child in &el.children {
-                collect_spans_with_style(child, spans, combined_style);
-            }
-        }
-    }
-}
-
-fn collect_spans(node: &IrNode, spans: &mut Vec<Span<'static>>) {
-    // Start recursion with a default style; styles accumulate as we descend.
-    collect_spans_with_style(node, spans, Style::default());
-}
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
