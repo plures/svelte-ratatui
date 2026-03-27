@@ -1,0 +1,15 @@
+[package]
+name = "tauri-plugin-tui"
+description = "Tauri 2 plugin: render any Svelte app in a terminal via svelte-ratatui-adapter"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+svelte-ratatui-adapter = { path = "../svelte-ratatui-adapter" }
+svelte-ratatui-compiler = { path = "../svelte-ratatui-compiler" }
+ratatui = "0.29"
+crossterm = "0.28"
+tauri = { version = "2", features = [] }
+serde_json = "1"
+log = "0.4"
