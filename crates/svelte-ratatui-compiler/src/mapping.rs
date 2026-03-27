@@ -497,11 +497,68 @@ fn collect_styled_text(el: &IrElement) -> Text<'static> {
 
     if !current_spans.is_empty() {
         lines.push(Line::from(current_spans));
-    }
-
+    // Build a `Text` with multiple `Line`s so that embedded `\n` in text nodes
+    // (e.g. within `<pre>` or other multiline content) are represented
+    // correctly in ratatui.
+    let mut lines: Vec<Line<'static>> = vec![Line::default()];
+    collect_lines_with_style(&IrNode::Element(el.clone()), &mut lines, Style::default());
     Text::from(lines)
 }
 
+fn collect_lines_with_style(
+    node: &IrNode,
+    lines: &mut Vec<Line<'static>>,
+    parent_style: Style,
+) {
+    match node {
+        IrNode::Text(s) => {
+            // Split on explicit newlines and start a new `Line` for each `\n`,
+            // preserving the accumulated style for each segment.
+            let mut first_segment = true;
+            for segment in s.split('\n') {
+                if !first_segment {
+                    // Start a new line after each newline character.
+                    lines.push(Line::default());
+                }
+                first_segment = false;
+
+                if segment.is_empty() {
+                    // Empty segments still contribute to line structure (e.g.,
+                    // consecutive or trailing newlines yield blank lines),
+                    // but do not need an explicit span.
+                    continue;
+                }
+
+                let span = Span::styled(segment.to_string(), parent_style);
+                if let Some(current_line) = lines.last_mut() {
+                    current_line.spans.push(span);
+                } else {
+                    lines.push(Line::from(span));
+                }
+            }
+        }
+        IrNode::Element(el) => {
+            // Style computed from this element alone.
+            let element_style = to_ratatui_style(&IrStyle::from_element(el));
+
+            // Merge parent + element styles so that explicit element properties
+            // override inherited ones while leaving others intact.
+            let mut combined_style = parent_style.patch(element_style);
+
+            // Semantic inline tags add modifiers regardless of child structure.
+            combined_style = match el.tag.as_str() {
+                "strong" | "b" => combined_style.add_modifier(Modifier::BOLD),
+                "em" | "i" => combined_style.add_modifier(Modifier::ITALIC),
+                "u" => combined_style.add_modifier(Modifier::UNDERLINED),
+                _ => combined_style,
+            };
+
+            for child in &el.children {
+                collect_lines_with_style(child, lines, combined_style);
+            }
+        }
+    }
+}
 fn collect_spans_with_style(
     node: &IrNode,
     spans: &mut Vec<Span<'static>>,
