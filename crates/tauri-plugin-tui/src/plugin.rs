@@ -28,9 +28,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
 
 /// Initialize the TUI plugin with a custom [`TuiConfig`].
 ///
-/// Use this when you need to adjust the startup delay, target frame rate,
-/// theme, or widget mapping overrides.
+/// Use this when you need to adjust the startup delay or target frame rate.
 pub fn init_with_config<R: Runtime>(config: TuiConfig) -> TauriPlugin<R> {
+    
     Builder::new("tui")
         .setup(|app, _api| {
             let app_handle = app.clone();
