@@ -118,9 +118,9 @@ pub struct WidgetOverrides {
 /// Top-level configuration for the TUI plugin.
 ///
 /// Construct with [`TuiConfig::default()`] and override individual fields as
-/// needed, or use one of the named presets (`default` uses sensible terminal
-/// defaults).
+/// needed. The default uses sensible terminal defaults.
 #[derive(Debug, Clone)]
+pub struct TuiConfig {
 pub struct TuiConfig {
     /// Colour and decoration theme.
     pub theme: TuiTheme,
