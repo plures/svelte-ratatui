@@ -467,7 +467,39 @@ fn to_ratatui_alignment(a: Alignment) -> ratatui::layout::Alignment {
 fn collect_styled_text(el: &IrElement) -> Text<'static> {
     let mut spans: Vec<Span<'static>> = Vec::new();
     collect_spans(&IrNode::Element(el.clone()), &mut spans);
-    Text::from(Line::from(spans))
+
+    // Convert spans into multiple lines based on embedded '\n' characters.
+    // This ensures that explicit line breaks (e.g. inside `<pre>`) are
+    // represented as separate `Line`s in the resulting `Text`.
+    let mut lines: Vec<Line<'static>> = Vec::new();
+    let mut current_spans: Vec<Span<'static>> = Vec::new();
+
+    for span in spans {
+        let style = span.style;
+        let text = span.content.into_owned();
+
+        // Split this span's content on newline characters, creating new
+        // `Line`s at each boundary while preserving styling.
+        let mut parts = text.split('\n').peekable();
+        if let Some(first_part) = parts.next() {
+            if !first_part.is_empty() {
+                current_spans.push(Span::styled(first_part.to_string(), style));
+            }
+        }
+        for part in parts {
+            // Finish the current line and start a new one for the next segment.
+            lines.push(Line::from(std::mem::take(&mut current_spans)));
+            if !part.is_empty() {
+                current_spans.push(Span::styled(part.to_string(), style));
+            }
+        }
+    }
+
+    if !current_spans.is_empty() {
+        lines.push(Line::from(current_spans));
+    }
+
+    Text::from(lines)
 }
 
 fn collect_spans_with_style(
