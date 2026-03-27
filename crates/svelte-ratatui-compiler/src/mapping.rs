@@ -146,7 +146,7 @@ fn render_heading(frame: &mut Frame, area: Rect, el: &IrElement) {
         style.modifiers.push(IrModifier::Bold);
     }
 
-    let text = IrNode::Element(el.clone()).text_content();
+    let text = collect_styled_text(el);
     let para = Paragraph::new(text)
         .style(to_ratatui_style(&style))
         .wrap(Wrap { trim: true });
