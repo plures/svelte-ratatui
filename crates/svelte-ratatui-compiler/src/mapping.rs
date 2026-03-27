@@ -469,7 +469,20 @@ fn collect_styled_text(el: &IrElement) -> Text<'static> {
     // (e.g. within `<pre>` or other multiline content) are represented
     // correctly in ratatui.
     let mut lines: Vec<Line<'static>> = vec![Line::default()];
-    collect_lines_with_style(&IrNode::Element(el.clone()), &mut lines, Style::default());
+
+    // Compute the root element's style and iterate its children directly by
+    // reference — avoids cloning the entire element subtree.
+    let element_style = to_ratatui_style(&IrStyle::from_element(el));
+    let combined_style = match el.tag.as_str() {
+        "strong" | "b" => element_style.add_modifier(Modifier::BOLD),
+        "em" | "i" => element_style.add_modifier(Modifier::ITALIC),
+        "u" => element_style.add_modifier(Modifier::UNDERLINED),
+        _ => element_style,
+    };
+    for child in &el.children {
+        collect_lines_with_style(child, &mut lines, combined_style);
+    }
+
     Text::from(lines)
 }
 
