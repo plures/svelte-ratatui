@@ -35,8 +35,9 @@ pub fn init_with_config<R: Runtime>(config: TuiConfig) -> TauriPlugin<R> {
         .setup(|app, _api| {
             let app_handle = app.clone();
             let startup_delay = Duration::from_millis(config.startup_delay_ms);
+            let fps = f64::from(config.target_fps.max(1));
             let frame_duration =
-                Duration::from_millis(1000 / u64::from(config.target_fps.max(1)));
+                Duration::from_secs_f64(1.0 / fps).max(Duration::from_millis(1));
 
             std::thread::spawn(move || {
                 // Give Svelte time to mount
