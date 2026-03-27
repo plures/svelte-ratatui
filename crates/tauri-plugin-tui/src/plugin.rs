@@ -164,7 +164,7 @@ fn run_tui_loop<R: Runtime>(window: &WebviewWindow<R>) -> std::io::Result<()> {
 
         // Process any snapshot that arrived during this frame
         let new_html = {
-            let mut buf = snapshot_buf.lock().unwrap();
+            let mut buf = snapshot_buf.lock().unwrap_or_else(|e| e.into_inner());
             buf.take().map(|s| s.html)
         };
 
