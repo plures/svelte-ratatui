@@ -470,48 +470,43 @@ fn collect_styled_text(el: &IrElement) -> Text<'static> {
     Text::from(Line::from(spans))
 }
 
-fn collect_spans(node: &IrNode, spans: &mut Vec<Span<'static>>) {
+fn collect_spans_with_style(
+    node: &IrNode,
+    spans: &mut Vec<Span<'static>>,
+    parent_style: Style,
+) {
     match node {
         IrNode::Text(s) => {
-            spans.push(Span::raw(s.clone()));
+            // Apply any accumulated style from ancestor elements.
+            spans.push(Span::styled(s.clone(), parent_style));
         }
         IrNode::Element(el) => {
-            let style = to_ratatui_style(&IrStyle::from_element(el));
-            // If element has children, recurse; apply style if it's an inline tag
-            let is_inline = matches!(
-                el.tag.as_str(),
-                "span" | "strong" | "b" | "em" | "i" | "u" | "a" | "code"
-            );
+            // Style computed from this element alone.
+            let element_style = to_ratatui_style(&IrStyle::from_element(el));
 
-            if is_inline && el.children.len() == 1 {
-                // Simple inline element: apply style to text
-                if let IrNode::Text(s) = &el.children[0] {
-                    let mut final_style = style;
-                    // Semantic tags
-                    match el.tag.as_str() {
-                        "strong" | "b" => {
-                            final_style = final_style.add_modifier(Modifier::BOLD)
-                        }
-                        "em" | "i" => {
-                            final_style = final_style.add_modifier(Modifier::ITALIC)
-                        }
-                        "u" => {
-                            final_style = final_style.add_modifier(Modifier::UNDERLINED)
-                        }
-                        _ => {}
-                    }
-                    spans.push(Span::styled(s.clone(), final_style));
-                    return;
-                }
-            }
+            // Merge parent + element styles so that explicit element properties
+            // override inherited ones while leaving others intact.
+            let mut combined_style = parent_style.patch(element_style);
+
+            // Semantic inline tags add modifiers regardless of child structure.
+            combined_style = match el.tag.as_str() {
+                "strong" | "b" => combined_style.add_modifier(Modifier::BOLD),
+                "em" | "i" => combined_style.add_modifier(Modifier::ITALIC),
+                "u" => combined_style.add_modifier(Modifier::UNDERLINED),
+                _ => combined_style,
+            };
 
             for child in &el.children {
-                collect_spans(child, spans);
+                collect_spans_with_style(child, spans, combined_style);
             }
         }
     }
 }
 
+fn collect_spans(node: &IrNode, spans: &mut Vec<Span<'static>>) {
+    // Start recursion with a default style; styles accumulate as we descend.
+    collect_spans_with_style(node, spans, Style::default());
+}
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
