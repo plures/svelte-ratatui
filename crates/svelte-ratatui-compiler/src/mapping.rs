@@ -322,7 +322,10 @@ fn render_input(frame: &mut Frame, area: Rect, el: &IrElement) {
 
 fn render_button(frame: &mut Frame, area: Rect, el: &IrElement) {
     let style = IrStyle::from_element(el);
-    let label = IrNode::Element(el.clone()).text_content();
+    let mut label = String::new();
+    for child in &el.children {
+        label.push_str(&child.text_content());
+    }
 
     let block = Block::default()
         .borders(Borders::ALL)
