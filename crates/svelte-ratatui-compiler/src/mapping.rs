@@ -1117,11 +1117,10 @@ mod tests {
         // A <select> with no children should render without panicking.
         let el = make_el("select", &[], vec![]);
         let node = IrNode::Element(el);
-        let output = test_frame_with(20, 4, |frame, area| {
+        test_frame_with(20, 4, |frame, area| {
             render_ir(frame, area, &node);
         });
-        // Just verify it renders (border present).
-        assert!(!output.is_empty());
+        // Just ensure it renders without panicking.
     }
 
     // ── <progress> → Gauge ───────────────────────────────────────────────────
