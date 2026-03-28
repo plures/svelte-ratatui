@@ -1,3 +1,7 @@
+## [0.5.0] — 2026-03-28
+
+- feat(compiler): expand widget mapping coverage for common Svelte/HTML elements (#14) (e38e0fc)
+
 ## [0.4.0] — 2026-03-27
 
 - feat: tauri-plugin-tui config API, TUI demo, and CLI scaffolding (#13) (6bf05c5)
