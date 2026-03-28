@@ -323,7 +323,9 @@ mod tests {
 
     #[test]
     fn parse_attributes_and_styles() {
-        let ir = parse_html(r#"<div class="tui-row selected" style="color: #00d4ff; font-weight: bold;">text</div>"#);
+        let ir = parse_html(
+            r#"<div class="tui-row selected" style="color: #00d4ff; font-weight: bold;">text</div>"#,
+        );
         let root = ir.as_element().unwrap();
         let div = root.children[0].as_element().unwrap();
         assert!(div.has_class("tui-row"));
@@ -411,8 +413,7 @@ mod tests {
     fn style_key_mixed_case_normalised_to_lowercase() {
         // Inline style keys like "Color" or "Font-Weight" must be stored as
         // lowercase so that IrStyle::from_element lookups work correctly.
-        let ir =
-            parse_html(r#"<div style="Color: red; Font-Weight: bold;">text</div>"#);
+        let ir = parse_html(r#"<div style="Color: red; Font-Weight: bold;">text</div>"#);
         let root = ir.as_element().unwrap();
         let div = root.children[0].as_element().unwrap();
         assert_eq!(div.style("color"), Some("red"));

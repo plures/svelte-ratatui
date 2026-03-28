@@ -22,12 +22,12 @@
 //!   `q`        — quit
 
 use crossterm::event::{Event, KeyCode};
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem, ListState, Paragraph};
-use ratatui::Frame;
-use svelte_ratatui_runtime::{run, SvelteComponent};
+use svelte_ratatui_runtime::{SvelteComponent, run};
 // ── Component state ───────────────────────────────────────────────────────────
 
 /// The TUI demo component — mirrors a `TuiDemo.svelte` in a template project.
@@ -153,8 +153,7 @@ impl SvelteComponent for TuiDemo {
                     return true;
                 }
                 KeyCode::Enter => {
-                    self.items
-                        .push(format!("Recorded: {}", self.counter));
+                    self.items.push(format!("Recorded: {}", self.counter));
                     return true;
                 }
                 KeyCode::Down => {

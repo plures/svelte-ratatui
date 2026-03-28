@@ -184,7 +184,7 @@ impl IrElement {
     pub fn has_class(&self, class: &str) -> bool {
         self.attrs
             .get("class")
-            .map_or(false, |c| c.split_whitespace().any(|w| w == class))
+            .is_some_and(|c| c.split_whitespace().any(|w| w == class))
     }
 
     /// Get an inline style value.
@@ -211,22 +211,25 @@ impl IrStyle {
         }
 
         // Background color
-        if let Some(bg_str) = el.style("background-color").or_else(|| el.style("background")) {
+        if let Some(bg_str) = el
+            .style("background-color")
+            .or_else(|| el.style("background"))
+        {
             style.bg = Some(parse_color(bg_str));
         }
 
         // Font weight
-        if let Some(fw) = el.style("font-weight") {
-            if fw == "bold" || fw == "700" || fw == "800" || fw == "900" {
-                style.modifiers.push(IrModifier::Bold);
-            }
+        if let Some(fw) = el.style("font-weight")
+            && (fw == "bold" || fw == "700" || fw == "800" || fw == "900")
+        {
+            style.modifiers.push(IrModifier::Bold);
         }
 
         // Font style
-        if let Some(fs) = el.style("font-style") {
-            if fs == "italic" {
-                style.modifiers.push(IrModifier::Italic);
-            }
+        if let Some(fs) = el.style("font-style")
+            && fs == "italic"
+        {
+            style.modifiers.push(IrModifier::Italic);
         }
 
         // Text decoration
@@ -264,23 +267,23 @@ pub fn parse_color(s: &str) -> IrColor {
     let s = s.trim().to_lowercase();
 
     // Hex colors
-    if let Some(hex) = s.strip_prefix('#') {
-        if let Some(c) = parse_hex_color(hex) {
-            return c;
-        }
+    if let Some(hex) = s.strip_prefix('#')
+        && let Some(c) = parse_hex_color(hex)
+    {
+        return c;
     }
 
     // rgb(r, g, b)
     if let Some(inner) = s.strip_prefix("rgb(").and_then(|s| s.strip_suffix(')')) {
         let parts: Vec<&str> = inner.split(',').collect();
-        if parts.len() == 3 {
-            if let (Ok(r), Ok(g), Ok(b)) = (
+        if parts.len() == 3
+            && let (Ok(r), Ok(g), Ok(b)) = (
                 parts[0].trim().parse::<u8>(),
                 parts[1].trim().parse::<u8>(),
                 parts[2].trim().parse::<u8>(),
-            ) {
-                return IrColor::Rgb(r, g, b);
-            }
+            )
+        {
+            return IrColor::Rgb(r, g, b);
         }
     }
 
@@ -329,7 +332,7 @@ mod tests {
 
     #[test]
     fn text_content_of_nested_elements() {
-        let mut div = IrElement {
+        let div = IrElement {
             tag: "div".into(),
             attrs: HashMap::new(),
             styles: HashMap::new(),
@@ -368,7 +371,7 @@ mod tests {
 
     #[test]
     fn has_class() {
-        let mut el = IrElement {
+        let el = IrElement {
             tag: "div".into(),
             attrs: HashMap::from([("class".into(), "tui-row selected".into())]),
             styles: HashMap::new(),

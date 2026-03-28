@@ -70,8 +70,8 @@ fn js_single_quoted(s: &str) -> String {
             '\n' => out.push_str("\\n"),
             '\r' => out.push_str("\\r"),
             '\t' => out.push_str("\\t"),
-            '\x08' => out.push_str("\\b"),   // backspace
-            '\x0C' => out.push_str("\\f"),   // form feed
+            '\x08' => out.push_str("\\b"), // backspace
+            '\x0C' => out.push_str("\\f"), // form feed
             // NUL: use \\x00 rather than \\0 to avoid octal mis-interpretation
             // if the escaped string is followed by a digit (e.g. \01 = octal).
             '\x00' => out.push_str("\\x00"),
