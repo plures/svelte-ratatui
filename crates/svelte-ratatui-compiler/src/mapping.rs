@@ -538,10 +538,10 @@ fn render_select(frame: &mut Frame, area: Rect, el: &IrElement) {
         .children
         .iter()
         .filter_map(|child| {
-            // Only consider element children that represent actual options.
+            // Only consider <option> element children.
             let opt_el = match child.as_element() {
-                Some(el) => el,
-                None => return None,
+                Some(el) if el.tag == "option" => el,
+                _ => return None,
             };
 
             // Treat only nodes with a `value` attribute as selectable options.
