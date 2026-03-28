@@ -1138,6 +1138,70 @@ mod tests {
     }
 
     #[test]
+    fn renders_select_highlights_selected_option_with_reversed() {
+        // The <select value="b"> should render the "Beta" option with REVERSED style.
+        let el = make_el(
+            "select",
+            &[("value", "b")],
+            vec![
+                IrNode::Element(make_el("option", &[("value", "a")], vec![IrNode::text("Alpha")])),
+                IrNode::Element(make_el("option", &[("value", "b")], vec![IrNode::text("Beta")])),
+                IrNode::Element(make_el("option", &[("value", "c")], vec![IrNode::text("Gamma")])),
+            ],
+        );
+        let node = IrNode::Element(el);
+
+        // Render into a TestBackend so we can inspect cell styles.
+        let backend = ratatui::backend::TestBackend::new(30, 8);
+        let mut terminal = ratatui::Terminal::new(backend).unwrap();
+        terminal
+            .draw(|frame| {
+                let area = frame.size();
+                render_ir(frame, area, &node);
+            })
+            .unwrap();
+
+        let backend = terminal.backend();
+        let buffer = backend.buffer();
+        let area = buffer.area;
+
+        // Find the row that contains the text "Beta".
+        let mut beta_row: Option<u16> = None;
+        for y in 0..area.height as usize {
+            let y_u16 = y as u16;
+            let mut line = String::new();
+            for x in 0..area.width as usize {
+                let x_u16 = x as u16;
+                let cell = buffer.get(x_u16, y_u16);
+                line.push_str(&cell.symbol);
+            }
+            if line.contains("Beta") {
+                beta_row = Some(y_u16);
+                break;
+            }
+        }
+
+        let beta_row = beta_row.expect("expected to find a row containing 'Beta'");
+
+        // Assert that non-blank cells in the "Beta" row have the REVERSED modifier.
+        for x in 0..area.width as usize {
+            let x_u16 = x as u16;
+            let cell = buffer.get(x_u16, beta_row);
+            if cell.symbol.trim().is_empty() {
+                continue;
+            }
+            assert!(
+                cell.style.add_modifier.contains(Modifier::REVERSED),
+                "expected REVERSED modifier on cell '{}' at ({}, {}), found {:?}",
+                cell.symbol,
+                x_u16,
+                beta_row,
+                cell.style,
+            );
+        }
+    }
+
+    #[test]
     fn renders_select_empty_options_no_panic() {
         // A <select> with no children should render without panicking.
         let el = make_el("select", &[], vec![]);
