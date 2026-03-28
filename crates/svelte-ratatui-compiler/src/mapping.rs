@@ -439,15 +439,19 @@ fn render_input(frame: &mut Frame, area: Rect, el: &IrElement) {
     let value = el.attr("value").unwrap_or("");
     let placeholder = el.attr("placeholder").unwrap_or("");
 
+    // Resolve any inline styles / classes applied to the element first so that
+    // focus/selected styling (fg, bg, modifiers) is preserved.
+    let base_style = to_ratatui_style(&IrStyle::from_element(el));
+
     let (display, text_style) = if value.is_empty() {
-        // Show placeholder text in a dimmed style.
-        (placeholder.to_string(), Style::default().add_modifier(Modifier::DIM))
+        // Show placeholder text in a dimmed style, layered over the base style.
+        (placeholder.to_string(), base_style.add_modifier(Modifier::DIM))
     } else if input_type == "password" {
         // Mask password content and append cursor to indicate editability.
-        (format!("{}│", "•".repeat(value.chars().count())), Style::default())
+        (format!("{}│", "•".repeat(value.chars().count())), base_style)
     } else {
         // Show value with a cursor character at the end.
-        (format!("{value}│"), Style::default())
+        (format!("{value}│"), base_style)
     };
 
     let title = el
@@ -544,16 +548,22 @@ fn render_select(frame: &mut Frame, area: Rect, el: &IrElement) {
                 None => return None,
             };
 
-            let text = opt_el.text_content();
+            let text: String = opt_el
+                .children
+                .iter()
+                .map(|c| c.text_content())
+                .collect::<Vec<_>>()
+                .join("");
             if text.trim().is_empty() {
                 return None;
             }
 
             let is_selected = option_value == selected_value;
+            let base_opt_style = to_ratatui_style(&IrStyle::from_element(opt_el));
             let item_style = if is_selected {
-                Style::default().add_modifier(Modifier::REVERSED)
+                base_opt_style.add_modifier(Modifier::REVERSED)
             } else {
-                Style::default()
+                base_opt_style
             };
             Some(ListItem::new(text).style(item_style))
         })
