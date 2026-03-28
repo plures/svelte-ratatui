@@ -1,0 +1,5 @@
+---
+source: crates/svelte-ratatui-compiler/tests/snapshot_tests.rs
+expression: out
+---
+Hello, terminal!

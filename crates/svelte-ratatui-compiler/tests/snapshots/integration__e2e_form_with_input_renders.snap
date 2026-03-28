@@ -1,0 +1,9 @@
+---
+source: crates/svelte-ratatui-compiler/tests/integration.rs
+expression: out
+---
+┌text────────────────────────┐
+│my text│                    │
+│                            │
+│                            │
+└────────────────────────────┘

@@ -1,0 +1,30 @@
+---
+source: crates/svelte-ratatui-adapter/tests/snapshot_tests.rs
+expression: to_snap(&ir)
+---
+Element(
+    SnapIrElement {
+        tag: "div",
+        attrs: {},
+        styles: {},
+        children: [
+            Element(
+                SnapIrElement {
+                    tag: "div",
+                    attrs: {
+                        "class": "tui-row selected",
+                    },
+                    styles: {
+                        "color": "#00d4ff",
+                        "font-weight": "bold",
+                    },
+                    children: [
+                        Text(
+                            "Styled",
+                        ),
+                    ],
+                },
+            ),
+        ],
+    },
+)

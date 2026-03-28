@@ -1,0 +1,6 @@
+---
+source: crates/svelte-ratatui-compiler/tests/snapshot_tests.rs
+expression: out
+---
+1. First            
+2. Second

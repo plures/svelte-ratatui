@@ -1,0 +1,11 @@
+---
+source: crates/svelte-ratatui-compiler/tests/snapshot_tests.rs
+expression: errors
+---
+[
+    DialectError {
+        code: "E003",
+        line: 5,
+        message: "E003: raw HTML has no TUI equivalent",
+    },
+]

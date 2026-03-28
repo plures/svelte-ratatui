@@ -1,0 +1,5 @@
+---
+source: crates/svelte-ratatui-compiler/tests/integration.rs
+expression: h3
+---
+Section
