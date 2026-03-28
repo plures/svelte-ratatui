@@ -105,7 +105,7 @@ fn render_element(frame: &mut Frame, area: Rect, el: &IrElement) {
             render_input(frame, area, el);
         }
 
-        // <button> → bordered Paragraph with Block wrapper; `selected` class → reversed
+        // <button> → Paragraph inside a bordered Block; `selected` class → reversed
         // highlight; `disabled` attribute → DIM modifier.
         // Example: <button class="selected">Click me</button>
         "button" => {
@@ -532,7 +532,6 @@ fn render_select(frame: &mut Frame, area: Rect, el: &IrElement) {
                 _ => return None,
             };
 
-            // Derive the option text from its children first.
             let text: String = opt_el
                 .children
                 .iter()
@@ -543,9 +542,8 @@ fn render_select(frame: &mut Frame, area: Rect, el: &IrElement) {
                 return None;
             }
 
-            // Use the explicit `value` attribute when set; otherwise fall back to the
-            // option text (matching HTML default behaviour for valueless <option> elements).
-            let option_value = opt_el.attr("value").unwrap_or(text.as_str());
+            // In HTML, <option> without a `value` attr uses its text content as the value.
+            let option_value: &str = opt_el.attr("value").unwrap_or(&text);
 
             let is_selected = option_value == selected_value;
             let base_opt_style = to_ratatui_style(&IrStyle::from_element(opt_el));
@@ -1132,11 +1130,9 @@ mod tests {
     }
 
     #[test]
-    fn renders_select_selected_option_has_reversed_modifier() {
-        // The option whose value matches the <select>'s `value` attribute must be rendered
-        // with Modifier::REVERSED; all other options must not.
-        let backend = TestBackend::new(30, 8);
-        let mut terminal = Terminal::new(backend).expect("failed to create test terminal");
+    fn renders_select_selected_row_is_reversed() {
+        // The selected option ("Beta") must have Modifier::REVERSED on its cells;
+        // unselected options must not.
         let el = make_el(
             "select",
             &[("value", "b")],
@@ -1159,66 +1155,131 @@ mod tests {
             ],
         );
         let node = IrNode::Element(el);
+
+        let backend = TestBackend::new(30, 8);
+        let mut terminal = Terminal::new(backend).unwrap();
         terminal
             .draw(|frame| {
                 let area = frame.area();
                 render_ir(frame, area, &node);
             })
-            .expect("failed to draw select");
+            .unwrap();
+        let buf = terminal.backend().buffer().clone();
 
-        let buffer = terminal.backend().buffer();
+        // Locate the rows containing each option label.
+        let mut beta_row: Option<u16> = None;
+        let mut alpha_row: Option<u16> = None;
+        for y in 0..8u16 {
+            let row: String = (0..30u16)
+                .map(|x| buf[(x, y)].symbol().chars().next().unwrap_or(' '))
+                .collect();
+            if row.contains("Beta") {
+                beta_row = Some(y);
+            }
+            if row.contains("Alpha") {
+                alpha_row = Some(y);
+            }
+        }
 
-        // Collect which rows contain at least one REVERSED cell.
-        let reversed_rows: Vec<u16> = (0..8)
-            .filter(|&y| {
-                (0..30u16).any(|x| {
-                    buffer[(x, y)]
-                        .style()
-                        .add_modifier
-                        .contains(Modifier::REVERSED)
-                })
-            })
-            .collect();
+        let beta_y = beta_row.expect("Beta row not found in buffer");
+        let alpha_y = alpha_row.expect("Alpha row not found in buffer");
 
-        assert_eq!(
-            reversed_rows.len(),
-            1,
-            "exactly one row should carry Modifier::REVERSED (the selected option)"
-        );
-
-        // The one reversed row must contain the selected option's label.
-        let reversed_y = reversed_rows[0];
-        let reversed_row_text: String = (0..30u16)
-            .flat_map(|x| buffer[(x, reversed_y)].symbol().chars())
-            .collect();
         assert!(
-            reversed_row_text.contains("Beta"),
-            "the REVERSED row should contain the selected option text, got: `{reversed_row_text}`"
+            (0..30u16).any(|x| buf[(x, beta_y)].modifier.contains(Modifier::REVERSED)),
+            "selected 'Beta' row should have REVERSED modifier"
+        );
+        assert!(
+            !(0..30u16).any(|x| buf[(x, alpha_y)].modifier.contains(Modifier::REVERSED)),
+            "unselected 'Alpha' row should not have REVERSED modifier"
         );
     }
 
     #[test]
-    fn renders_select_option_without_value_attr_renders_using_text() {
-        // An <option> without a `value` attribute should still render and be
-        // matched for selection using its text content (HTML default behaviour).
-        let output = test_frame_with(30, 6, |frame, area| {
-            let el = make_el(
-                "select",
-                &[("value", "Beta")],
-                vec![
-                    IrNode::Element(make_el("option", &[], vec![IrNode::text("Alpha")])),
-                    IrNode::Element(make_el("option", &[], vec![IrNode::text("Beta")])),
-                ],
-            );
-            render_ir(frame, area, &IrNode::Element(el));
-        });
+    fn renders_select_option_without_value_uses_text() {
+        // <option> with no value attr — value defaults to text, so matching by text works.
+        let el = make_el(
+            "select",
+            &[("value", "Beta")],
+            vec![
+                IrNode::Element(make_el("option", &[], vec![IrNode::text("Alpha")])),
+                IrNode::Element(make_el("option", &[], vec![IrNode::text("Beta")])),
+            ],
+        );
+        let node = IrNode::Element(el);
+
+        let backend = TestBackend::new(30, 6);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal
+            .draw(|frame| {
+                let area = frame.area();
+                render_ir(frame, area, &node);
+            })
+            .unwrap();
+        let buf = terminal.backend().buffer().clone();
+
+        // Both options should render.
+        let mut text_output = String::new();
+        for y in 0..6u16 {
+            for x in 0..30u16 {
+                text_output.push(buf[(x, y)].symbol().chars().next().unwrap_or(' '));
+            }
+        }
+        assert!(text_output.contains("Alpha"), "Alpha option should render");
+        assert!(text_output.contains("Beta"), "Beta option should render");
+
+        // "Beta" row should be REVERSED (selected).
+        let mut beta_row: Option<u16> = None;
+        for y in 0..6u16 {
+            let row: String = (0..30u16)
+                .map(|x| buf[(x, y)].symbol().chars().next().unwrap_or(' '))
+                .collect();
+            if row.contains("Beta") {
+                beta_row = Some(y);
+            }
+        }
+        let beta_y = beta_row.expect("Beta row not found");
         assert!(
-            output.contains("Alpha"),
-            "option without value should still render"
+            (0..30u16).any(|x| buf[(x, beta_y)].modifier.contains(Modifier::REVERSED)),
+            "selected value-less 'Beta' option should have REVERSED modifier"
+        );
+    }
+
+    #[test]
+    fn renders_select_non_option_children_ignored() {
+        // Non-<option> children (e.g., <optgroup>, stray <span>) must not become list rows.
+        let el = make_el(
+            "select",
+            &[],
+            vec![
+                IrNode::Element(make_el(
+                    "option",
+                    &[("value", "a")],
+                    vec![IrNode::text("Alpha")],
+                )),
+                IrNode::Element(make_el(
+                    "optgroup",
+                    &[("value", "x")],
+                    vec![IrNode::text("ShouldNotAppear")],
+                )),
+                IrNode::Element(make_el(
+                    "span",
+                    &[("value", "y")],
+                    vec![IrNode::text("AlsoIgnored")],
+                )),
+            ],
+        );
+        let node = IrNode::Element(el);
+        let output = test_frame_with(30, 6, |frame, area| {
+            render_ir(frame, area, &node);
+        });
+        assert!(output.contains("Alpha"), "real option must render");
+        assert!(
+            !output.contains("ShouldNotAppear"),
+            "optgroup must not render as a row"
         );
         assert!(
-            output.contains("Beta"),
-            "option without value should still render"
+            !output.contains("AlsoIgnored"),
+            "span must not render as a row"
         );
     }
 
