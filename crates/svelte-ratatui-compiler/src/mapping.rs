@@ -116,7 +116,7 @@ fn render_element(frame: &mut Frame, area: Rect, el: &IrElement) {
             render_input(frame, area, el);
         }
 
-        // <button> → bordered Paragraph with Block wrapper; `selected` class → reversed
+        // <button> → Paragraph inside a bordered Block; `selected` class → reversed
         // highlight; `disabled` attribute → DIM modifier.
         // Example: <button class="selected">Click me</button>
         "button" => {
