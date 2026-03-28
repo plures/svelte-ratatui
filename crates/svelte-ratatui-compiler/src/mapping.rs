@@ -50,8 +50,10 @@ fn render_element(frame: &mut Frame, area: Rect, el: &IrElement) {
             render_container(frame, area, el);
         }
 
-        // Form containers — rendered as bordered blocks.
-        // Example: <form> / <fieldset> act as logical grouping containers.
+        // Form containers — logical grouping blocks using the generic container renderer.
+        // Example: <form> / <fieldset> act as grouping containers and get borders only when
+        // the usual container border conditions apply (e.g. border style, `bordered` class,
+        // or role="group").
         "form" | "fieldset" => {
             render_container(frame, area, el);
         }
