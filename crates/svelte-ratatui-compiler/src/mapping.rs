@@ -426,7 +426,8 @@ fn render_status_bar(frame: &mut Frame, area: Rect, el: &IrElement) {
 // ── Input (input, textarea) ───────────────────────────────────────────────────
 //
 // Maps `<input>` and `<textarea>` to a bordered `Paragraph`.
-// - `type="password"` masks the value with "•" characters.
+// - `type="password"` masks the value with "•" characters; the cursor is
+//   still appended so editability is always indicated (e.g. "•••│").
 // - A "│" cursor is appended to non-empty values to indicate editability.
 // - Placeholder text is shown in a DIM style when the value is empty.
 // - The block title comes from `aria-label`, `name`, or `type`.
@@ -442,8 +443,8 @@ fn render_input(frame: &mut Frame, area: Rect, el: &IrElement) {
         // Show placeholder text in a dimmed style.
         (placeholder.to_string(), Style::default().add_modifier(Modifier::DIM))
     } else if input_type == "password" {
-        // Mask password content.
-        ("•".repeat(value.chars().count()), Style::default())
+        // Mask password content and append cursor to indicate editability.
+        (format!("{}│", "•".repeat(value.chars().count())), Style::default())
     } else {
         // Show value with a cursor character at the end.
         (format!("{value}│"), Style::default())
@@ -639,10 +640,11 @@ fn render_details(frame: &mut Frame, area: Rect, el: &IrElement) {
         frame.render_widget(block, area);
 
         // Render all non-summary children inside the block.
-        let content: Vec<&IrNode> = el
+        let content: Vec<IrNode> = el
             .children
             .iter()
             .filter(|c| c.as_element().is_none_or(|e| e.tag != "summary"))
+            .cloned()
             .collect();
         render_children_in_layout(frame, inner, &content, Direction::Vertical);
     } else {
@@ -1293,9 +1295,10 @@ mod tests {
         let output = test_frame_with(20, 3, |frame, area| {
             render_ir(frame, area, &node);
         });
-        // Raw password must NOT appear; masked bullets must.
+        // Raw password must NOT appear; masked bullets and cursor must.
         assert!(!output.contains("secret"), "password should be masked");
         assert!(output.contains('•'), "expected mask character");
+        assert!(output.contains('│'), "expected cursor character after masked password");
     }
 
     // ── <button> disabled state ───────────────────────────────────────────────
