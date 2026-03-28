@@ -1327,12 +1327,44 @@ mod tests {
 
     #[test]
     fn renders_disabled_button_no_panic() {
+        use ratatui::backend::TestBackend;
+        use ratatui::Terminal;
+
         let el = make_el("button", &[("disabled", "")], vec![IrNode::text("Off")]);
         let node = IrNode::Element(el);
         let output = test_frame_with(20, 3, |frame, area| {
             render_ir(frame, area, &node);
         });
         assert!(output.contains("Off"));
+
+        // Additionally verify that the disabled button applies the DIM modifier.
+        let backend = TestBackend::new(20, 3);
+        let mut terminal = Terminal::new(backend).expect("failed to create test terminal");
+        terminal
+            .draw(|frame| {
+                let area = frame.size();
+                render_ir(frame, area, &node);
+            })
+            .expect("failed to draw disabled button");
+
+        let backend = terminal.backend();
+        let buffer = backend.buffer();
+
+        let mut has_dim = false;
+        'outer: for y in 0..buffer.area.height {
+            for x in 0..buffer.area.width {
+                let cell = buffer.get(x, y);
+                if cell.style().add_modifier.contains(Modifier::DIM) {
+                    has_dim = true;
+                    break 'outer;
+                }
+            }
+        }
+
+        assert!(
+            has_dim,
+            "disabled button should render with DIM modifier to indicate disabled state"
+        );
     }
 
     // ── Unknown element graceful fallback ─────────────────────────────────────
