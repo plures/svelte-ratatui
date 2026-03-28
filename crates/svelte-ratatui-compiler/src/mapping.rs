@@ -531,13 +531,24 @@ fn render_select(frame: &mut Frame, area: Rect, el: &IrElement) {
         .children
         .iter()
         .filter_map(|child| {
-            let text = child.text_content();
+            // Only consider element children that represent actual options.
+            let opt_el = match child.as_element() {
+                Some(el) => el,
+                None => return None,
+            };
+
+            // Treat only nodes with a `value` attribute as selectable options.
+            let option_value = match opt_el.attr("value") {
+                Some(value) => value,
+                None => return None,
+            };
+
+            let text = opt_el.text_content();
             if text.trim().is_empty() {
                 return None;
             }
-            let is_selected = child
-                .as_element()
-                .is_some_and(|opt_el| opt_el.attr("value").unwrap_or("") == selected_value);
+
+            let is_selected = option_value == selected_value;
             let item_style = if is_selected {
                 Style::default().add_modifier(Modifier::REVERSED)
             } else {
