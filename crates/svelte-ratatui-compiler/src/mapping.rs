@@ -1248,8 +1248,11 @@ mod tests {
             render_ir(frame, area, &node);
         });
         assert!(output.contains("hello"));
-        // Cursor character "│" should appear after the value.
-        assert!(output.contains('│'), "expected cursor character");
+        // Cursor character "│" should appear immediately after the value.
+        assert!(
+            output.contains("hello│"),
+            "expected cursor character after value, got: `{output}`"
+        );
     }
 
     #[test]
