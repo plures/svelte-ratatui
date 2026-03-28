@@ -655,7 +655,7 @@ fn render_details(frame: &mut Frame, area: Rect, el: &IrElement) {
         let content: Vec<IrNode> = el
             .children
             .iter()
-            .filter(|c| c.as_element().is_none_or(|e| e.tag != "summary"))
+            .filter(|c| !c.as_element().is_some_and(|e| e.tag == "summary"))
             .cloned()
             .collect();
         render_children_in_layout(frame, inner, &content, Direction::Vertical);
