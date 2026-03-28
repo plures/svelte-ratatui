@@ -50,12 +50,7 @@ fn key_to_js(key: &KeyEvent) -> Option<String> {
     let alt = key.modifiers.contains(KeyModifiers::ALT);
 
     Some(dom_reader::build_dispatch_key_js(
-        &js_key,
-        &js_code,
-        shift,
-        ctrl,
-        alt,
-        false,
+        &js_key, &js_code, shift, ctrl, alt, false,
     ))
 }
 

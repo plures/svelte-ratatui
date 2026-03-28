@@ -7,22 +7,11 @@
 //! - **Runtime adapter**: HTML from headless Tauri → IR → this module → terminal
 //! - **Compiler**: Svelte source → IR → this module's logic emitted as Rust code
 
+use ratatui::Frame;
 use ratatui::layout::{Constraint as RatConstraint, Direction as RatDirection, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span, Text};
-use ratatui::widgets::{
-    Block,
-    Borders,
-    Cell,
-    Gauge,
-    List,
-    ListItem,
-    Paragraph,
-    Row,
-    Table,
-    Wrap,
-};
-use ratatui::Frame;
+use ratatui::widgets::{Block, Borders, Cell, Gauge, List, ListItem, Paragraph, Row, Table, Wrap};
 
 use crate::ir::{
     Alignment, Direction, IrColor, IrElement, IrModifier, IrNode, IrStyle, NamedColor,
@@ -240,9 +229,7 @@ fn render_heading(frame: &mut Frame, area: Rect, el: &IrElement) {
         style.modifiers.push(IrModifier::Bold);
     }
     // h1 and h2 additionally get underline to visually distinguish hierarchy.
-    if matches!(el.tag.as_str(), "h1" | "h2")
-        && !style.modifiers.contains(&IrModifier::Underline)
-    {
+    if matches!(el.tag.as_str(), "h1" | "h2") && !style.modifiers.contains(&IrModifier::Underline) {
         style.modifiers.push(IrModifier::Underline);
     }
 
@@ -318,11 +305,7 @@ fn render_table(frame: &mut Frame, area: Rect, el: &IrElement) {
             "thead" => {
                 for tr in &child_el.children {
                     if let Some(tr_el) = tr.as_element() {
-                        header_cells = tr_el
-                            .children
-                            .iter()
-                            .map(|c| c.text_content())
-                            .collect();
+                        header_cells = tr_el.children.iter().map(|c| c.text_content()).collect();
                     }
                 }
             }
@@ -337,8 +320,7 @@ fn render_table(frame: &mut Frame, area: Rect, el: &IrElement) {
             }
             "tr" => {
                 // Table without thead/tbody
-                let row: Vec<String> =
-                    child_el.children.iter().map(|c| c.text_content()).collect();
+                let row: Vec<String> = child_el.children.iter().map(|c| c.text_content()).collect();
                 if header_cells.is_empty() {
                     header_cells = row;
                 } else {
@@ -447,10 +429,16 @@ fn render_input(frame: &mut Frame, area: Rect, el: &IrElement) {
 
     let (display, text_style) = if value.is_empty() {
         // Show placeholder text in a dimmed style, layered over the base style.
-        (placeholder.to_string(), base_style.add_modifier(Modifier::DIM))
+        (
+            placeholder.to_string(),
+            base_style.add_modifier(Modifier::DIM),
+        )
     } else if input_type == "password" {
         // Mask password content and append cursor to indicate editability.
-        (format!("{}│", "•".repeat(value.chars().count())), base_style)
+        (
+            format!("{}│", "•".repeat(value.chars().count())),
+            base_style,
+        )
     } else {
         // Show value with a cursor character at the end.
         (format!("{value}│"), base_style)
@@ -544,12 +532,7 @@ fn render_select(frame: &mut Frame, area: Rect, el: &IrElement) {
                 _ => return None,
             };
 
-            // Treat only nodes with a `value` attribute as selectable options.
-            let option_value = match opt_el.attr("value") {
-                Some(value) => value,
-                None => return None,
-            };
-
+            // Derive the option text from its children first.
             let text: String = opt_el
                 .children
                 .iter()
@@ -559,6 +542,10 @@ fn render_select(frame: &mut Frame, area: Rect, el: &IrElement) {
             if text.trim().is_empty() {
                 return None;
             }
+
+            // Use the explicit `value` attribute when set; otherwise fall back to the
+            // option text (matching HTML default behaviour for valueless <option> elements).
+            let option_value = opt_el.attr("value").unwrap_or(text.as_str());
 
             let is_selected = option_value == selected_value;
             let base_opt_style = to_ratatui_style(&IrStyle::from_element(opt_el));
@@ -573,7 +560,9 @@ fn render_select(frame: &mut Frame, area: Rect, el: &IrElement) {
 
     let title = el.attr("aria-label").unwrap_or("Select");
     let block = Block::default().borders(Borders::ALL).title(title);
-    let list = List::new(items).block(block).style(to_ratatui_style(&style));
+    let list = List::new(items)
+        .block(block)
+        .style(to_ratatui_style(&style));
     frame.render_widget(list, area);
 }
 
@@ -590,14 +579,8 @@ fn render_select(frame: &mut Frame, area: Rect, el: &IrElement) {
 fn render_progress(frame: &mut Frame, area: Rect, el: &IrElement) {
     let style = IrStyle::from_element(el);
 
-    let value: f64 = el
-        .attr("value")
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(0.0);
-    let max: f64 = el
-        .attr("max")
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(100.0);
+    let value: f64 = el.attr("value").and_then(|v| v.parse().ok()).unwrap_or(0.0);
+    let max: f64 = el.attr("max").and_then(|v| v.parse().ok()).unwrap_or(100.0);
 
     let ratio = if max > 0.0 {
         (value / max).clamp(0.0, 1.0)
@@ -655,7 +638,7 @@ fn render_details(frame: &mut Frame, area: Rect, el: &IrElement) {
         let content: Vec<IrNode> = el
             .children
             .iter()
-            .filter(|c| !c.as_element().is_some_and(|e| e.tag == "summary"))
+            .filter(|c| c.as_element().is_none_or(|e| e.tag != "summary"))
             .cloned()
             .collect();
         render_children_in_layout(frame, inner, &content, Direction::Vertical);
@@ -827,11 +810,7 @@ fn collect_styled_text(el: &IrElement) -> Text<'static> {
     Text::from(lines)
 }
 
-fn collect_lines_with_style(
-    node: &IrNode,
-    lines: &mut Vec<Line<'static>>,
-    parent_style: Style,
-) {
+fn collect_lines_with_style(node: &IrNode, lines: &mut Vec<Line<'static>>, parent_style: Style) {
     match node {
         IrNode::Text(s) => {
             // Split on explicit newlines and start a new `Line` for each `\n`,
@@ -887,8 +866,8 @@ fn collect_lines_with_style(
 mod tests {
     use super::*;
     use crate::ir::{IrElement, IrNode};
-    use ratatui::backend::TestBackend;
     use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
     use std::collections::HashMap;
 
     fn test_frame_with<F: FnOnce(&mut Frame, Rect)>(width: u16, height: u16, f: F) -> String {
@@ -1111,7 +1090,10 @@ mod tests {
             render_ir(frame, area, &node);
         });
         // Box-drawing corners confirm a border was rendered.
-        assert!(output.contains('┌') || output.contains('╔'), "expected border");
+        assert!(
+            output.contains('┌') || output.contains('╔'),
+            "expected border"
+        );
         assert!(output.contains("let x = 1;"));
     }
 
@@ -1123,9 +1105,21 @@ mod tests {
             "select",
             &[("value", "b")],
             vec![
-                IrNode::Element(make_el("option", &[("value", "a")], vec![IrNode::text("Alpha")])),
-                IrNode::Element(make_el("option", &[("value", "b")], vec![IrNode::text("Beta")])),
-                IrNode::Element(make_el("option", &[("value", "c")], vec![IrNode::text("Gamma")])),
+                IrNode::Element(make_el(
+                    "option",
+                    &[("value", "a")],
+                    vec![IrNode::text("Alpha")],
+                )),
+                IrNode::Element(make_el(
+                    "option",
+                    &[("value", "b")],
+                    vec![IrNode::text("Beta")],
+                )),
+                IrNode::Element(make_el(
+                    "option",
+                    &[("value", "c")],
+                    vec![IrNode::text("Gamma")],
+                )),
             ],
         );
         let node = IrNode::Element(el);
@@ -1135,6 +1129,97 @@ mod tests {
         assert!(output.contains("Alpha"));
         assert!(output.contains("Beta"));
         assert!(output.contains("Gamma"));
+    }
+
+    #[test]
+    fn renders_select_selected_option_has_reversed_modifier() {
+        // The option whose value matches the <select>'s `value` attribute must be rendered
+        // with Modifier::REVERSED; all other options must not.
+        let backend = TestBackend::new(30, 8);
+        let mut terminal = Terminal::new(backend).expect("failed to create test terminal");
+        let el = make_el(
+            "select",
+            &[("value", "b")],
+            vec![
+                IrNode::Element(make_el(
+                    "option",
+                    &[("value", "a")],
+                    vec![IrNode::text("Alpha")],
+                )),
+                IrNode::Element(make_el(
+                    "option",
+                    &[("value", "b")],
+                    vec![IrNode::text("Beta")],
+                )),
+                IrNode::Element(make_el(
+                    "option",
+                    &[("value", "c")],
+                    vec![IrNode::text("Gamma")],
+                )),
+            ],
+        );
+        let node = IrNode::Element(el);
+        terminal
+            .draw(|frame| {
+                let area = frame.area();
+                render_ir(frame, area, &node);
+            })
+            .expect("failed to draw select");
+
+        let buffer = terminal.backend().buffer();
+
+        // Collect which rows contain at least one REVERSED cell.
+        let reversed_rows: Vec<u16> = (0..8)
+            .filter(|&y| {
+                (0..30u16).any(|x| {
+                    buffer[(x, y)]
+                        .style()
+                        .add_modifier
+                        .contains(Modifier::REVERSED)
+                })
+            })
+            .collect();
+
+        assert_eq!(
+            reversed_rows.len(),
+            1,
+            "exactly one row should carry Modifier::REVERSED (the selected option)"
+        );
+
+        // The one reversed row must contain the selected option's label.
+        let reversed_y = reversed_rows[0];
+        let reversed_row_text: String = (0..30u16)
+            .flat_map(|x| buffer[(x, reversed_y)].symbol().chars())
+            .collect();
+        assert!(
+            reversed_row_text.contains("Beta"),
+            "the REVERSED row should contain the selected option text, got: `{reversed_row_text}`"
+        );
+    }
+
+    #[test]
+    fn renders_select_option_without_value_attr_renders_using_text() {
+        // An <option> without a `value` attribute should still render and be
+        // matched for selection using its text content (HTML default behaviour).
+        let output = test_frame_with(30, 6, |frame, area| {
+            let el = make_el(
+                "select",
+                &[("value", "Beta")],
+                vec![
+                    IrNode::Element(make_el("option", &[], vec![IrNode::text("Alpha")])),
+                    IrNode::Element(make_el("option", &[], vec![IrNode::text("Beta")])),
+                ],
+            );
+            render_ir(frame, area, &IrNode::Element(el));
+        });
+        assert!(
+            output.contains("Alpha"),
+            "option without value should still render"
+        );
+        assert!(
+            output.contains("Beta"),
+            "option without value should still render"
+        );
     }
 
     #[test]
@@ -1203,7 +1288,10 @@ mod tests {
         assert!(output.contains('▶'), "expected collapsed indicator ▶");
         assert!(output.contains("Click me"), "expected summary text");
         // Body content must NOT be rendered when closed.
-        assert!(!output.contains("Hidden body"), "body should be hidden when closed");
+        assert!(
+            !output.contains("Hidden body"),
+            "body should be hidden when closed"
+        );
     }
 
     #[test]
@@ -1224,7 +1312,10 @@ mod tests {
         // Open indicator "▼" must appear.
         assert!(output.contains('▼'), "expected open indicator ▼");
         assert!(output.contains("Info"), "expected summary text");
-        assert!(output.contains("Visible detail"), "body should be visible when open");
+        assert!(
+            output.contains("Visible detail"),
+            "body should be visible when open"
+        );
     }
 
     // ── <hr> → horizontal separator ──────────────────────────────────────────
@@ -1310,7 +1401,10 @@ mod tests {
         // Raw password must NOT appear; masked bullets and cursor must.
         assert!(!output.contains("secret"), "password should be masked");
         assert!(output.contains('•'), "expected mask character");
-        assert!(output.contains('│'), "expected cursor character after masked password");
+        assert!(
+            output.contains('│'),
+            "expected cursor character after masked password"
+        );
     }
 
     // ── <button> disabled state ───────────────────────────────────────────────
@@ -1327,8 +1421,8 @@ mod tests {
 
     #[test]
     fn renders_disabled_button_no_panic() {
-        use ratatui::backend::TestBackend;
         use ratatui::Terminal;
+        use ratatui::backend::TestBackend;
 
         let el = make_el("button", &[("disabled", "")], vec![IrNode::text("Off")]);
         let node = IrNode::Element(el);
@@ -1342,7 +1436,7 @@ mod tests {
         let mut terminal = Terminal::new(backend).expect("failed to create test terminal");
         terminal
             .draw(|frame| {
-                let area = frame.size();
+                let area = frame.area();
                 render_ir(frame, area, &node);
             })
             .expect("failed to draw disabled button");
@@ -1353,7 +1447,7 @@ mod tests {
         let mut has_dim = false;
         'outer: for y in 0..buffer.area.height {
             for x in 0..buffer.area.width {
-                let cell = buffer.get(x, y);
+                let cell = &buffer[(x, y)];
                 if cell.style().add_modifier.contains(Modifier::DIM) {
                     has_dim = true;
                     break 'outer;

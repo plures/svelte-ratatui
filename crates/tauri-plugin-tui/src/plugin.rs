@@ -35,8 +35,7 @@ pub fn init_with_config<R: Runtime>(config: TuiConfig) -> TauriPlugin<R> {
             let app_handle = app.clone();
             let startup_delay = Duration::from_millis(config.startup_delay_ms);
             let fps = f64::from(config.target_fps.max(1));
-            let frame_duration =
-                Duration::from_secs_f64(1.0 / fps).max(Duration::from_millis(1));
+            let frame_duration = Duration::from_secs_f64(1.0 / fps).max(Duration::from_millis(1));
 
             std::thread::spawn(move || {
                 // Give Svelte time to mount
@@ -119,7 +118,10 @@ impl Drop for RestoreOnDrop {
 }
 
 /// The main terminal render loop.
-fn run_tui_loop<R: Runtime>(window: &WebviewWindow<R>, frame_duration: Duration) -> std::io::Result<()> {
+fn run_tui_loop<R: Runtime>(
+    window: &WebviewWindow<R>,
+    frame_duration: Duration,
+) -> std::io::Result<()> {
     let mut terminal = ratatui::init();
 
     // Ensures ratatui::restore() is called on every exit path, including
