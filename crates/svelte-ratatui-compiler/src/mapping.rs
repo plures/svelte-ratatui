@@ -1206,13 +1206,16 @@ mod tests {
 
     #[test]
     fn renders_hr_no_panic() {
-        // <hr> must render without panicking and produce some output.
+        // <hr> must render without panicking and produce a visible separator.
         let el = make_el("hr", &[], vec![]);
         let node = IrNode::Element(el);
         let output = test_frame_with(20, 2, |frame, area| {
             render_ir(frame, area, &node);
         });
-        assert!(!output.is_empty());
+        assert!(
+            output.contains('─'),
+            "expected horizontal rule to contain box-drawing glyph"
+        );
     }
 
     // ── <h1>/<h2> heading hierarchy ──────────────────────────────────────────
