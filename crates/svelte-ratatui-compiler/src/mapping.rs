@@ -410,17 +410,34 @@ fn render_status_bar(frame: &mut Frame, area: Rect, el: &IrElement) {
 // ── Input (input, textarea) ───────────────────────────────────────────────────
 //
 // Maps `<input>` and `<textarea>` to a bordered `Paragraph`.
+// - `<textarea>` reads its value from child text nodes (not a `value` attr)
+//   since textarea content in the DOM comes from children, not attributes.
 // - `type="password"` masks the value with "•" characters; the cursor is
 //   still appended so editability is always indicated (e.g. "•••│").
 // - A "│" cursor is appended to non-empty values to indicate editability.
 // - Placeholder text is shown in a DIM style when the value is empty.
-// - The block title comes from `aria-label`, `name`, or `type`.
+// - The block title comes from `aria-label`, `name`, `type`, or tag name.
 //
 // Example: `<input type="text" value="hello" placeholder="Enter text" />`
+// Example: `<textarea name="bio">Some content</textarea>`
 
 fn render_input(frame: &mut Frame, area: Rect, el: &IrElement) {
+    let is_textarea = el.tag == "textarea";
     let input_type = el.attr("type").unwrap_or("text");
-    let value = el.attr("value").unwrap_or("");
+
+    // For <textarea> the content lives in children; <input> uses the value attr.
+    let owned_value: String;
+    let value: &str = if is_textarea {
+        owned_value = el
+            .children
+            .iter()
+            .map(|c| c.text_content())
+            .collect::<String>();
+        owned_value.as_str()
+    } else {
+        el.attr("value").unwrap_or("")
+    };
+
     let placeholder = el.attr("placeholder").unwrap_or("");
 
     // Resolve any inline styles / classes applied to the element first so that
@@ -444,10 +461,12 @@ fn render_input(frame: &mut Frame, area: Rect, el: &IrElement) {
         (format!("{value}│"), base_style)
     };
 
+    // Title: prefer aria-label, then name; for <input> fall back to type,
+    // for <textarea> fall back to the tag name itself.
     let title = el
         .attr("aria-label")
         .or_else(|| el.attr("name"))
-        .unwrap_or(input_type);
+        .unwrap_or(if is_textarea { "textarea" } else { input_type });
 
     let block = Block::default().borders(Borders::ALL).title(title);
     let para = Paragraph::new(display).block(block).style(text_style);
@@ -1417,6 +1436,70 @@ mod tests {
         assert!(output.contains("Sub Heading"));
     }
 
+    #[test]
+    fn renders_heading_h1_has_underlined_modifier() {
+        // <h1> and <h2> cells must carry Modifier::UNDERLINED.
+        let backend = TestBackend::new(20, 1);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let el = make_el("h1", &[], vec![IrNode::text("Title")]);
+        let node = IrNode::Element(el);
+        terminal
+            .draw(|frame| {
+                render_ir(frame, frame.area(), &node);
+            })
+            .unwrap();
+        let buf = terminal.backend().buffer();
+        // At least one cell in the heading row must be UNDERLINED.
+        let has_underline =
+            (0..buf.area.width).any(|x| buf[(x, 0)].modifier.contains(Modifier::UNDERLINED));
+        assert!(
+            has_underline,
+            "<h1> should apply Modifier::UNDERLINED to its cells"
+        );
+    }
+
+    #[test]
+    fn renders_heading_h2_has_underlined_modifier() {
+        // <h2> cells must also carry Modifier::UNDERLINED.
+        let backend = TestBackend::new(20, 1);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let el = make_el("h2", &[], vec![IrNode::text("Sub Title")]);
+        let node = IrNode::Element(el);
+        terminal
+            .draw(|frame| {
+                render_ir(frame, frame.area(), &node);
+            })
+            .unwrap();
+        let buf = terminal.backend().buffer();
+        let has_underline =
+            (0..buf.area.width).any(|x| buf[(x, 0)].modifier.contains(Modifier::UNDERLINED));
+        assert!(
+            has_underline,
+            "<h2> should apply Modifier::UNDERLINED to its cells"
+        );
+    }
+
+    #[test]
+    fn renders_heading_h3_no_underlined_modifier() {
+        // <h3> and below must NOT have UNDERLINED — only h1/h2 get underline.
+        let backend = TestBackend::new(20, 1);
+        let mut terminal = Terminal::new(backend).unwrap();
+        let el = make_el("h3", &[], vec![IrNode::text("Sub Heading")]);
+        let node = IrNode::Element(el);
+        terminal
+            .draw(|frame| {
+                render_ir(frame, frame.area(), &node);
+            })
+            .unwrap();
+        let buf = terminal.backend().buffer();
+        let has_underline =
+            (0..buf.area.width).any(|x| buf[(x, 0)].modifier.contains(Modifier::UNDERLINED));
+        assert!(
+            !has_underline,
+            "<h3> should NOT apply Modifier::UNDERLINED to its cells"
+        );
+    }
+
     // ── <input> improvements ─────────────────────────────────────────────────
 
     #[test]
@@ -1465,6 +1548,42 @@ mod tests {
         assert!(
             output.contains('│'),
             "expected cursor character after masked password"
+        );
+    }
+
+    #[test]
+    fn renders_textarea_value_from_children() {
+        // <textarea> content lives in child text nodes, not a `value` attribute.
+        let el = make_el(
+            "textarea",
+            &[("name", "bio")],
+            vec![IrNode::text("About me")],
+        );
+        let node = IrNode::Element(el);
+        let output = test_frame_with(24, 3, |frame, area| {
+            render_ir(frame, area, &node);
+        });
+        assert!(
+            output.contains("About me"),
+            "textarea content from children should be rendered"
+        );
+        assert!(
+            output.contains("About me│"),
+            "textarea should show cursor after content"
+        );
+    }
+
+    #[test]
+    fn renders_textarea_empty_shows_placeholder() {
+        // An empty <textarea> with no children shows the placeholder.
+        let el = make_el("textarea", &[("placeholder", "Write here")], vec![]);
+        let node = IrNode::Element(el);
+        let output = test_frame_with(24, 3, |frame, area| {
+            render_ir(frame, area, &node);
+        });
+        assert!(
+            output.contains("Write here"),
+            "empty textarea should show placeholder"
         );
     }
 
