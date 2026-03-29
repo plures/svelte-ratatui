@@ -1,0 +1,11 @@
+---
+source: crates/svelte-ratatui-adapter/tests/snapshot_tests.rs
+expression: js.unwrap()
+---
+(function(){
+    const el = document.elementFromPoint(80, 80);
+    if (el) {
+        el.click();
+        el.focus();
+    }
+})()

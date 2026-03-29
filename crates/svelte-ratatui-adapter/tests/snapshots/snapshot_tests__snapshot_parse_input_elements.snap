@@ -1,0 +1,57 @@
+---
+source: crates/svelte-ratatui-adapter/tests/snapshot_tests.rs
+expression: to_snap(&ir)
+---
+Element(
+    SnapIrElement {
+        tag: "div",
+        attrs: {},
+        styles: {},
+        children: [
+            Element(
+                SnapIrElement {
+                    tag: "form",
+                    attrs: {},
+                    styles: {},
+                    children: [
+                        Element(
+                            SnapIrElement {
+                                tag: "input",
+                                attrs: {
+                                    "placeholder": "Enter text",
+                                    "type": "text",
+                                    "value": "hello",
+                                },
+                                styles: {},
+                                children: [],
+                            },
+                        ),
+                        Element(
+                            SnapIrElement {
+                                tag: "input",
+                                attrs: {
+                                    "type": "password",
+                                    "value": "secret",
+                                },
+                                styles: {},
+                                children: [],
+                            },
+                        ),
+                        Element(
+                            SnapIrElement {
+                                tag: "button",
+                                attrs: {},
+                                styles: {},
+                                children: [
+                                    Text(
+                                        "Submit",
+                                    ),
+                                ],
+                            },
+                        ),
+                    ],
+                },
+            ),
+        ],
+    },
+)

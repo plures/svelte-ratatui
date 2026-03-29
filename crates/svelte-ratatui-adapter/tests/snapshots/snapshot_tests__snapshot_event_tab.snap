@@ -1,0 +1,14 @@
+---
+source: crates/svelte-ratatui-adapter/tests/snapshot_tests.rs
+expression: js.unwrap()
+---
+
+(function() {
+    const focusable = Array.from(document.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )).filter(el => !el.disabled && el.offsetParent !== null);
+    const current = document.activeElement;
+    const idx = focusable.indexOf(current);
+    const next = focusable[(idx + 1) % focusable.length];
+    if (next) next.focus();
+})()

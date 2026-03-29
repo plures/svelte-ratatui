@@ -1,0 +1,11 @@
+---
+source: crates/svelte-ratatui-compiler/tests/snapshot_tests.rs
+expression: errors
+---
+[
+    DialectError {
+        code: "E002",
+        line: 5,
+        message: "E002: dynamic components not supported in TUI mode",
+    },
+]

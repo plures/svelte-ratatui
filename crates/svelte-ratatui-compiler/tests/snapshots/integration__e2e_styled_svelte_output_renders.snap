@@ -1,0 +1,9 @@
+---
+source: crates/svelte-ratatui-compiler/tests/integration.rs
+expression: out
+---
+Dashboard                     
+                              
+                              
+                              
+Welcome to the TUI

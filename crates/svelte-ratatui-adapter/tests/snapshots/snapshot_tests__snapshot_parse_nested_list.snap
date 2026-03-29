@@ -1,0 +1,58 @@
+---
+source: crates/svelte-ratatui-adapter/tests/snapshot_tests.rs
+expression: to_snap(&ir)
+---
+Element(
+    SnapIrElement {
+        tag: "div",
+        attrs: {},
+        styles: {},
+        children: [
+            Element(
+                SnapIrElement {
+                    tag: "ul",
+                    attrs: {},
+                    styles: {},
+                    children: [
+                        Element(
+                            SnapIrElement {
+                                tag: "li",
+                                attrs: {},
+                                styles: {},
+                                children: [
+                                    Text(
+                                        "Alpha",
+                                    ),
+                                ],
+                            },
+                        ),
+                        Element(
+                            SnapIrElement {
+                                tag: "li",
+                                attrs: {},
+                                styles: {},
+                                children: [
+                                    Text(
+                                        "Beta",
+                                    ),
+                                ],
+                            },
+                        ),
+                        Element(
+                            SnapIrElement {
+                                tag: "li",
+                                attrs: {},
+                                styles: {},
+                                children: [
+                                    Text(
+                                        "Gamma",
+                                    ),
+                                ],
+                            },
+                        ),
+                    ],
+                },
+            ),
+        ],
+    },
+)

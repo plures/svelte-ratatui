@@ -80,3 +80,140 @@ pub fn run<C: SvelteComponent>(mut component: C) -> io::Result<()> {
     ratatui::restore();
     Ok(())
 }
+
+// ── Tests ────────────────────────────────────────────────────────────────────
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    use ratatui::Terminal;
+    use ratatui::backend::TestBackend;
+    use ratatui::widgets::Paragraph;
+
+    // ── Mock component used across all lifecycle tests ────────────────────────
+
+    struct MockComponent {
+        mount_called: bool,
+        destroy_called: bool,
+        last_event: Option<KeyCode>,
+    }
+
+    impl MockComponent {
+        fn new() -> Self {
+            Self {
+                mount_called: false,
+                destroy_called: false,
+                last_event: None,
+            }
+        }
+    }
+
+    impl SvelteComponent for MockComponent {
+        fn render(&self, frame: &mut Frame, area: Rect) {
+            frame.render_widget(Paragraph::new("mock"), area);
+        }
+
+        fn handle_event(&mut self, event: Event) -> bool {
+            if let Event::Key(key) = event {
+                self.last_event = Some(key.code);
+                return true;
+            }
+            false
+        }
+
+        fn poll_async(&mut self) -> bool {
+            false
+        }
+
+        fn on_mount(&mut self) {
+            self.mount_called = true;
+        }
+
+        fn on_destroy(&mut self) {
+            self.destroy_called = true;
+        }
+    }
+
+    // ── Trait method tests ────────────────────────────────────────────────────
+
+    #[test]
+    fn mock_component_render_writes_to_buffer() {
+        let component = MockComponent::new();
+        let backend = TestBackend::new(20, 1);
+        let mut terminal = Terminal::new(backend).unwrap();
+        terminal
+            .draw(|frame| {
+                let area = frame.area();
+                component.render(frame, area);
+            })
+            .unwrap();
+        let buf = terminal.backend().buffer().clone();
+        let row: String = (0..20u16)
+            .map(|x| buf[(x, 0)].symbol().chars().next().unwrap_or(' '))
+            .collect();
+        assert!(row.contains("mock"), "render should write component text");
+    }
+
+    #[test]
+    fn mock_component_handle_event_consumes_key() {
+        let mut component = MockComponent::new();
+        let ev = Event::Key(KeyEvent::new(KeyCode::Enter, KeyModifiers::NONE));
+        let consumed = component.handle_event(ev);
+        assert!(consumed, "key event should be consumed");
+        assert_eq!(component.last_event, Some(KeyCode::Enter));
+    }
+
+    #[test]
+    fn mock_component_handle_non_key_event_returns_false() {
+        let mut component = MockComponent::new();
+        let ev = Event::Resize(80, 24);
+        let consumed = component.handle_event(ev);
+        assert!(!consumed, "resize event should not be consumed");
+        assert_eq!(component.last_event, None);
+    }
+
+    #[test]
+    fn mock_component_poll_async_returns_false() {
+        let mut component = MockComponent::new();
+        assert!(!component.poll_async());
+    }
+
+    #[test]
+    fn mock_component_on_mount_sets_flag() {
+        let mut component = MockComponent::new();
+        assert!(!component.mount_called, "mount_called should start false");
+        component.on_mount();
+        assert!(component.mount_called, "on_mount should set mount_called");
+    }
+
+    #[test]
+    fn mock_component_on_destroy_sets_flag() {
+        let mut component = MockComponent::new();
+        assert!(!component.destroy_called);
+        component.on_destroy();
+        assert!(
+            component.destroy_called,
+            "on_destroy should set destroy_called"
+        );
+    }
+
+    #[test]
+    fn default_lifecycle_hooks_are_no_ops() {
+        // A minimal component with default lifecycle hooks must compile and
+        // call on_mount/on_destroy without panicking.
+        struct Minimal;
+        impl SvelteComponent for Minimal {
+            fn render(&self, _frame: &mut Frame, _area: Rect) {}
+            fn handle_event(&mut self, _ev: Event) -> bool {
+                false
+            }
+            fn poll_async(&mut self) -> bool {
+                false
+            }
+        }
+        let mut c = Minimal;
+        c.on_mount();
+        c.on_destroy();
+    }
+}

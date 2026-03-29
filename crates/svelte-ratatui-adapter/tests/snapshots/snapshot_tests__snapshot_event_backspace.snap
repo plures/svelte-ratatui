@@ -1,0 +1,17 @@
+---
+source: crates/svelte-ratatui-adapter/tests/snapshot_tests.rs
+expression: js.unwrap()
+---
+(function(){
+    const target = document.activeElement || document.body;
+    target.dispatchEvent(new KeyboardEvent('keydown', {
+        key: 'Backspace',
+        code: 'Backspace',
+        shiftKey: false,
+        ctrlKey: false,
+        altKey: false,
+        metaKey: false,
+        bubbles: true,
+        cancelable: true
+    }));
+})()

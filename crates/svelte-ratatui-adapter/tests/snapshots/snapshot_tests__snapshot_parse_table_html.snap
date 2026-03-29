@@ -1,0 +1,139 @@
+---
+source: crates/svelte-ratatui-adapter/tests/snapshot_tests.rs
+expression: to_snap(&ir)
+---
+Element(
+    SnapIrElement {
+        tag: "div",
+        attrs: {},
+        styles: {},
+        children: [
+            Element(
+                SnapIrElement {
+                    tag: "table",
+                    attrs: {},
+                    styles: {},
+                    children: [
+                        Element(
+                            SnapIrElement {
+                                tag: "thead",
+                                attrs: {},
+                                styles: {},
+                                children: [
+                                    Element(
+                                        SnapIrElement {
+                                            tag: "tr",
+                                            attrs: {},
+                                            styles: {},
+                                            children: [
+                                                Element(
+                                                    SnapIrElement {
+                                                        tag: "th",
+                                                        attrs: {},
+                                                        styles: {},
+                                                        children: [
+                                                            Text(
+                                                                "Name",
+                                                            ),
+                                                        ],
+                                                    },
+                                                ),
+                                                Element(
+                                                    SnapIrElement {
+                                                        tag: "th",
+                                                        attrs: {},
+                                                        styles: {},
+                                                        children: [
+                                                            Text(
+                                                                "Score",
+                                                            ),
+                                                        ],
+                                                    },
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                ],
+                            },
+                        ),
+                        Element(
+                            SnapIrElement {
+                                tag: "tbody",
+                                attrs: {},
+                                styles: {},
+                                children: [
+                                    Element(
+                                        SnapIrElement {
+                                            tag: "tr",
+                                            attrs: {},
+                                            styles: {},
+                                            children: [
+                                                Element(
+                                                    SnapIrElement {
+                                                        tag: "td",
+                                                        attrs: {},
+                                                        styles: {},
+                                                        children: [
+                                                            Text(
+                                                                "Alice",
+                                                            ),
+                                                        ],
+                                                    },
+                                                ),
+                                                Element(
+                                                    SnapIrElement {
+                                                        tag: "td",
+                                                        attrs: {},
+                                                        styles: {},
+                                                        children: [
+                                                            Text(
+                                                                "95",
+                                                            ),
+                                                        ],
+                                                    },
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                    Element(
+                                        SnapIrElement {
+                                            tag: "tr",
+                                            attrs: {},
+                                            styles: {},
+                                            children: [
+                                                Element(
+                                                    SnapIrElement {
+                                                        tag: "td",
+                                                        attrs: {},
+                                                        styles: {},
+                                                        children: [
+                                                            Text(
+                                                                "Bob",
+                                                            ),
+                                                        ],
+                                                    },
+                                                ),
+                                                Element(
+                                                    SnapIrElement {
+                                                        tag: "td",
+                                                        attrs: {},
+                                                        styles: {},
+                                                        children: [
+                                                            Text(
+                                                                "88",
+                                                            ),
+                                                        ],
+                                                    },
+                                                ),
+                                            ],
+                                        },
+                                    ),
+                                ],
+                            },
+                        ),
+                    ],
+                },
+            ),
+        ],
+    },
+)

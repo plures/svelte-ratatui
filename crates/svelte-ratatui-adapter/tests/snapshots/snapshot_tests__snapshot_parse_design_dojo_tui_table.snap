@@ -1,0 +1,101 @@
+---
+source: crates/svelte-ratatui-adapter/tests/snapshot_tests.rs
+expression: to_snap(&ir)
+---
+Element(
+    SnapIrElement {
+        tag: "div",
+        attrs: {},
+        styles: {},
+        children: [
+            Element(
+                SnapIrElement {
+                    tag: "div",
+                    attrs: {
+                        "aria-label": "Results",
+                        "class": "tui-table",
+                        "role": "grid",
+                    },
+                    styles: {},
+                    children: [
+                        Element(
+                            SnapIrElement {
+                                tag: "div",
+                                attrs: {
+                                    "aria-hidden": "true",
+                                    "class": "tui-border",
+                                },
+                                styles: {},
+                                children: [
+                                    Text(
+                                        "╔════╦════╗",
+                                    ),
+                                ],
+                            },
+                        ),
+                        Element(
+                            SnapIrElement {
+                                tag: "div",
+                                attrs: {
+                                    "class": "tui-header",
+                                    "role": "row",
+                                },
+                                styles: {},
+                                children: [
+                                    Text(
+                                        "║ A  ║ B  ║",
+                                    ),
+                                ],
+                            },
+                        ),
+                        Element(
+                            SnapIrElement {
+                                tag: "div",
+                                attrs: {
+                                    "aria-hidden": "true",
+                                    "class": "tui-border",
+                                },
+                                styles: {},
+                                children: [
+                                    Text(
+                                        "╠════╬════╣",
+                                    ),
+                                ],
+                            },
+                        ),
+                        Element(
+                            SnapIrElement {
+                                tag: "div",
+                                attrs: {
+                                    "class": "tui-row",
+                                    "role": "row",
+                                },
+                                styles: {},
+                                children: [
+                                    Text(
+                                        "║ 1  ║ 2  ║",
+                                    ),
+                                ],
+                            },
+                        ),
+                        Element(
+                            SnapIrElement {
+                                tag: "div",
+                                attrs: {
+                                    "aria-hidden": "true",
+                                    "class": "tui-border",
+                                },
+                                styles: {},
+                                children: [
+                                    Text(
+                                        "╚════╩════╝",
+                                    ),
+                                ],
+                            },
+                        ),
+                    ],
+                },
+            ),
+        ],
+    },
+)

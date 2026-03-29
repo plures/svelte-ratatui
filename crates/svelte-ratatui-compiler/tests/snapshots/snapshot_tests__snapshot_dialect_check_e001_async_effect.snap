@@ -1,0 +1,11 @@
+---
+source: crates/svelte-ratatui-compiler/tests/snapshot_tests.rs
+expression: errors
+---
+[
+    DialectError {
+        code: "E001",
+        line: 3,
+        message: "E001: async effects must use db.subscribe() or ipc() patterns",
+    },
+]
