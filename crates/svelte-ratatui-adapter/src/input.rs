@@ -55,15 +55,19 @@ fn key_to_js(key: &KeyEvent) -> Option<String> {
 }
 
 fn mouse_to_js(mouse: &MouseEvent) -> Option<String> {
+    // Convert terminal coordinates to approximate CSS pixel coordinates.
+    // Assumes ~8px per character width, ~16px per row.
+    let css_x = mouse.column as f64 * 8.0;
+    let css_y = mouse.row as f64 * 16.0;
+
     match mouse.kind {
-        MouseEventKind::Down(_) => {
-            let x = mouse.column;
-            let y = mouse.row;
-            // Convert terminal coordinates to approximate CSS pixel coordinates.
-            // Assumes ~8px per character width, ~16px per row.
-            let css_x = x as f64 * 8.0;
-            let css_y = y as f64 * 16.0;
-            Some(dom_reader::build_dispatch_click_js(css_x, css_y))
+        MouseEventKind::Down(button) => {
+            let btn = mouse_button_index(button);
+            Some(dom_reader::build_dispatch_mousedown_js(css_x, css_y, btn))
+        }
+        MouseEventKind::Up(button) => {
+            let btn = mouse_button_index(button);
+            Some(dom_reader::build_dispatch_mouseup_js(css_x, css_y, btn))
         }
         MouseEventKind::ScrollUp => Some(
             r#"(function(){
@@ -79,7 +83,31 @@ fn mouse_to_js(mouse: &MouseEvent) -> Option<String> {
 })()"#
                 .to_string(),
         ),
+        MouseEventKind::ScrollLeft => Some(
+            r#"(function(){
+    const target = document.activeElement || document.body;
+    target.dispatchEvent(new WheelEvent('wheel', { deltaX: -120, bubbles: true }));
+})()"#
+                .to_string(),
+        ),
+        MouseEventKind::ScrollRight => Some(
+            r#"(function(){
+    const target = document.activeElement || document.body;
+    target.dispatchEvent(new WheelEvent('wheel', { deltaX: 120, bubbles: true }));
+})()"#
+                .to_string(),
+        ),
         _ => None,
+    }
+}
+
+/// Convert a crossterm [`MouseButton`] to the standard DOM `button` index.
+fn mouse_button_index(button: crossterm::event::MouseButton) -> u8 {
+    use crossterm::event::MouseButton;
+    match button {
+        MouseButton::Left => 0,
+        MouseButton::Middle => 1,
+        MouseButton::Right => 2,
     }
 }
 

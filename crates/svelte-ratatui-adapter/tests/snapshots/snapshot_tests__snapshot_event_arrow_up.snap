@@ -4,7 +4,7 @@ expression: js.unwrap()
 ---
 (function(){
     const target = document.activeElement || document.body;
-    target.dispatchEvent(new KeyboardEvent('keydown', {
+    const init = {
         key: 'ArrowUp',
         code: 'ArrowUp',
         shiftKey: false,
@@ -13,5 +13,7 @@ expression: js.unwrap()
         metaKey: false,
         bubbles: true,
         cancelable: true
-    }));
+    };
+    target.dispatchEvent(new KeyboardEvent('keydown', init));
+    target.dispatchEvent(new KeyboardEvent('keyup', init));
 })()

@@ -186,6 +186,54 @@ fn snapshot_event_mouse_click() {
 }
 
 #[test]
+fn snapshot_event_mouse_up() {
+    let ev = Event::Mouse(MouseEvent {
+        kind: MouseEventKind::Up(MouseButton::Left),
+        column: 10,
+        row: 5,
+        modifiers: KeyModifiers::NONE,
+    });
+    let js = event_to_js(&ev);
+    insta::assert_snapshot!(js.unwrap());
+}
+
+#[test]
+fn snapshot_event_mouse_right_down() {
+    let ev = Event::Mouse(MouseEvent {
+        kind: MouseEventKind::Down(MouseButton::Right),
+        column: 4,
+        row: 2,
+        modifiers: KeyModifiers::NONE,
+    });
+    let js = event_to_js(&ev);
+    insta::assert_snapshot!(js.unwrap());
+}
+
+#[test]
+fn snapshot_event_scroll_up() {
+    let ev = Event::Mouse(MouseEvent {
+        kind: MouseEventKind::ScrollUp,
+        column: 0,
+        row: 0,
+        modifiers: KeyModifiers::NONE,
+    });
+    let js = event_to_js(&ev);
+    insta::assert_snapshot!(js.unwrap());
+}
+
+#[test]
+fn snapshot_event_scroll_down() {
+    let ev = Event::Mouse(MouseEvent {
+        kind: MouseEventKind::ScrollDown,
+        column: 0,
+        row: 0,
+        modifiers: KeyModifiers::NONE,
+    });
+    let js = event_to_js(&ev);
+    insta::assert_snapshot!(js.unwrap());
+}
+
+#[test]
 fn snapshot_event_f1_key() {
     let ev = Event::Key(KeyEvent::new(KeyCode::F(1), KeyModifiers::NONE));
     let js = event_to_js(&ev);

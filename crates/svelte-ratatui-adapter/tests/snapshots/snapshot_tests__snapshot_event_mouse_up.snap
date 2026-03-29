@@ -5,14 +5,19 @@ expression: js.unwrap()
 (function(){
     const el = document.elementFromPoint(80, 80);
     if (el) {
-        el.dispatchEvent(new MouseEvent('mousedown', {
+        el.dispatchEvent(new MouseEvent('mouseup', {
             clientX: 80,
             clientY: 80,
             button: 0,
-            buttons: 1,
             bubbles: true,
             cancelable: true
         }));
-        el.focus();
+        el.dispatchEvent(new MouseEvent('click', {
+            clientX: 80,
+            clientY: 80,
+            button: 0,
+            bubbles: true,
+            cancelable: true
+        }));
     }
 })()
