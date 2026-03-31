@@ -12,3 +12,8 @@ path = "src/main.rs"
 [dependencies]
 svelte-ratatui-compiler = { path = "../svelte-ratatui-compiler" }
 clap = { version = "4", features = ["derive"] }
+notify = "6.1"
+walkdir = "2"
+
+[dev-dependencies]
+tempfile = "3"

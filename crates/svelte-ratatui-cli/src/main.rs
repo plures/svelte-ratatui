@@ -1,10 +1,13 @@
 //! svelte-ratatui CLI
 //!
-//! Usage:
-//!   svelte-ratatui compile <input.svelte> -o <output.rs>
-//!   svelte-ratatui watch <dir>
-//!   svelte-ratatui preview <input.svelte>
+//! Commands:
+//!   svelte-ratatui build   [--dir <dir>] [--out-dir <dir>] [--verbose]
+//!   svelte-ratatui check   [--dir <dir>] [--verbose]
+//!   svelte-ratatui dev     [--dir <dir>] [--out-dir <dir>] [--verbose]
+//!   svelte-ratatui preview <input.svelte> [--verbose]
 //!   svelte-ratatui scaffold [--with-tui] [--no-tui]
+
+mod commands;
 
 use clap::{Parser, Subcommand};
 
@@ -15,28 +18,59 @@ use clap::{Parser, Subcommand};
     version
 )]
 struct Cli {
+    /// Enable verbose output (includes IR dump and extra diagnostics).
+    #[arg(long, global = true)]
+    verbose: bool,
+
     #[command(subcommand)]
     command: Commands,
 }
 
 #[derive(Debug, Subcommand)]
 enum Commands {
-    /// Compile a single Svelte component to a Rust widget-tree source file.
-    Compile {
-        /// Input Svelte source file.
-        input: String,
-        /// Output Rust source file.
-        #[arg(short, long, default_value = "out.rs")]
-        output: String,
+    /// Compile all Svelte components in a directory to ratatui Rust source files.
+    ///
+    /// Walks the source directory for `*.svelte` files, compiles each one, and writes the
+    /// resulting Rust source alongside the input (or into `--out-dir` when specified).
+    /// Reports per-file timing and a total summary on completion.
+    Build {
+        /// Directory containing Svelte components (defaults to current directory).
+        #[arg(short, long, default_value = ".")]
+        dir: String,
+
+        /// Directory to write generated `.rs` files into.
+        /// When omitted, each `.rs` file is placed next to its `.svelte` source.
+        #[arg(short, long)]
+        out_dir: Option<String>,
     },
 
-    /// Watch a directory and recompile on change.
-    Watch {
-        /// Directory containing Svelte components.
+    /// Validate Svelte components for TUI compatibility.
+    ///
+    /// Reports unsupported elements, styles, or language patterns that cannot be
+    /// compiled to ratatui code.  Exit code is non-zero if any errors are found.
+    Check {
+        /// Directory containing Svelte components (defaults to current directory).
+        #[arg(short, long, default_value = ".")]
         dir: String,
     },
 
-    /// Preview a component in the terminal without a full Tauri build.
+    /// Watch mode: watch `.svelte` files and recompile on change.
+    ///
+    /// Performs an initial build of all components and then enters a watch loop.
+    /// Any saved `.svelte` file triggers incremental recompilation of that file.
+    Dev {
+        /// Directory containing Svelte components (defaults to current directory).
+        #[arg(short, long, default_value = ".")]
+        dir: String,
+
+        /// Directory to write generated `.rs` files into.
+        #[arg(short, long)]
+        out_dir: Option<String>,
+    },
+
+    /// Compile and display a single Svelte component (quick iteration).
+    ///
+    /// Compiles the given file and prints the generated Rust source to stdout.
     Preview {
         /// Input Svelte source file.
         input: String,
@@ -71,27 +105,32 @@ enum Commands {
 fn main() {
     let cli = Cli::parse();
 
-    match cli.command {
-        Commands::Compile { input, output } => {
-            eprintln!("compile: {input} → {output}  (coming soon)");
+    let result = match cli.command {
+        Commands::Build { dir, out_dir } => {
+            commands::build::run(&dir, out_dir.as_deref(), cli.verbose)
         }
-        Commands::Watch { dir } => {
-            eprintln!("watch: {dir}  (coming soon)");
+        Commands::Check { dir } => commands::check::run(&dir, cli.verbose),
+        Commands::Dev { dir, out_dir } => {
+            commands::dev::run(&dir, out_dir.as_deref(), cli.verbose)
         }
-        Commands::Preview { input } => {
-            eprintln!("preview: {input}  (coming soon)");
-        }
+        Commands::Preview { input } => commands::preview::run(&input, cli.verbose),
         Commands::Scaffold {
             project_dir,
             with_tui,
             no_tui,
         } => {
             let tui_enabled = with_tui && !no_tui;
-            if tui_enabled {
-                eprintln!("scaffold: {project_dir}  [TUI enabled]  (coming soon)");
-            } else {
-                eprintln!("scaffold: {project_dir}  [TUI disabled]  (coming soon)");
-            }
+            commands::scaffold::run(&project_dir, tui_enabled)
         }
+    };
+
+    if let Err(e) = result {
+        print_error(&e);
+        std::process::exit(1);
     }
+}
+
+/// Print a top-level error in red to stderr.
+fn print_error(msg: &str) {
+    eprintln!("\x1b[31merror\x1b[0m: {msg}");
 }
