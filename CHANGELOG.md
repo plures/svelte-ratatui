@@ -1,3 +1,7 @@
+## [0.7.0] — 2026-03-31
+
+- feat(cli): add build, check, dev, and preview commands with watch mode (#17) (78c34c2)
+
 ## [0.6.0] — 2026-03-31
 
 - feat(adapter): implement keyboard and mouse event translation (#16) (94c6510)
