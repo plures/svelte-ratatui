@@ -91,6 +91,9 @@ fn js_single_quoted(s: &str) -> String {
 
 /// Build JavaScript for dispatching a keyboard event into the webview.
 ///
+/// Dispatches both a `keydown` and a matching `keyup` event to the active
+/// element, matching the browser's natural key-press sequence.
+///
 /// Returns a snippet suitable for passing to `webview.eval(...)`.
 pub fn build_dispatch_key_js(
     key: &str,
@@ -105,7 +108,7 @@ pub fn build_dispatch_key_js(
     format!(
         r#"(function(){{
     const target = document.activeElement || document.body;
-    target.dispatchEvent(new KeyboardEvent('keydown', {{
+    const init = {{
         key: '{key}',
         code: '{code}',
         shiftKey: {shift},
@@ -114,7 +117,9 @@ pub fn build_dispatch_key_js(
         metaKey: {meta},
         bubbles: true,
         cancelable: true
-    }}));
+    }};
+    target.dispatchEvent(new KeyboardEvent('keydown', init));
+    target.dispatchEvent(new KeyboardEvent('keyup', init));
 }})()"#
     )
 }
@@ -137,7 +142,91 @@ pub fn build_dispatch_click_js(x: f64, y: f64) -> String {
     )
 }
 
-/// JavaScript for dispatching a focus event to the next focusable element.
+/// Build JavaScript for dispatching a `mousedown` event at viewport coordinates.
+///
+/// Uses the standard `MouseEvent` constructor so listeners registered with
+/// `addEventListener('mousedown', …)` and Svelte's `on:mousedown` are triggered.
+///
+/// `x` and `y` are CSS pixel coordinates. `button` is the standard DOM button
+/// index (0 = left, 1 = middle, 2 = right).
+pub fn build_dispatch_mousedown_js(x: f64, y: f64, button: u8) -> String {
+    // `buttons` bitmask: left=1, right=2, middle=4
+    let buttons: u8 = match button {
+        0 => 1,
+        2 => 2,
+        1 => 4,
+        _ => 0,
+    };
+    format!(
+        r#"(function(){{
+    const el = document.elementFromPoint({x}, {y});
+    if (el) {{
+        el.dispatchEvent(new MouseEvent('mousedown', {{
+            clientX: {x},
+            clientY: {y},
+            button: {button},
+            buttons: {buttons},
+            bubbles: true,
+            cancelable: true
+        }}));
+        el.focus();
+    }}
+}})()"#
+    )
+}
+
+/// Build JavaScript for dispatching a `mouseup` and follow-up event sequence at
+/// viewport coordinates — matching the browser's natural button-release order.
+///
+/// - Button 0 (left): `mouseup` + `click`
+/// - Button 1 (middle): `mouseup` + `auxclick`
+/// - Button 2 (right): `mouseup` + `contextmenu`
+///
+/// `x` and `y` are CSS pixel coordinates. `button` is the standard DOM button
+/// index (0 = left, 1 = middle, 2 = right).
+pub fn build_dispatch_mouseup_js(x: f64, y: f64, button: u8) -> String {
+    let follow_up = match button {
+        0 => "click",
+        1 => "auxclick",
+        _ => "contextmenu",
+    };
+    format!(
+        r#"(function(){{
+    const el = document.elementFromPoint({x}, {y});
+    if (el) {{
+        el.dispatchEvent(new MouseEvent('mouseup', {{
+            clientX: {x},
+            clientY: {y},
+            button: {button},
+            bubbles: true,
+            cancelable: true
+        }}));
+        el.dispatchEvent(new MouseEvent('{follow_up}', {{
+            clientX: {x},
+            clientY: {y},
+            button: {button},
+            bubbles: true,
+            cancelable: true
+        }}));
+    }}
+}})()"#
+    )
+}
+
+/// Convert a crossterm [`crossterm::event::MouseButton`] to the standard DOM
+/// `button` index (0 = left, 1 = middle, 2 = right).
+///
+/// This is shared by both `input.rs` (for coordinate translation) and any
+/// caller that builds mouse event JS snippets directly.
+pub fn mouse_button_index(button: crossterm::event::MouseButton) -> u8 {
+    use crossterm::event::MouseButton;
+    match button {
+        MouseButton::Left => 0,
+        MouseButton::Middle => 1,
+        MouseButton::Right => 2,
+    }
+}
+
 pub const FOCUS_NEXT_JS: &str = r#"
 (function() {
     const focusable = Array.from(document.querySelectorAll(

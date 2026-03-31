@@ -15,8 +15,10 @@
 //! svelte-tauri-template app gets `--tui terminal` for free.
 
 pub mod dom_reader;
+pub mod focus_ring;
 pub mod html_parser;
 pub mod input;
 
 pub use dom_reader::DomSnapshot;
+pub use focus_ring::FocusRing;
 pub use html_parser::parse_html;

@@ -3,13 +3,13 @@ source: crates/svelte-ratatui-adapter/tests/snapshot_tests.rs
 expression: js.unwrap()
 ---
 (function(){
-    const el = document.elementFromPoint(80, 80);
+    const el = document.elementFromPoint(32, 32);
     if (el) {
         el.dispatchEvent(new MouseEvent('mousedown', {
-            clientX: 80,
-            clientY: 80,
-            button: 0,
-            buttons: 1,
+            clientX: 32,
+            clientY: 32,
+            button: 2,
+            buttons: 2,
             bubbles: true,
             cancelable: true
         }));

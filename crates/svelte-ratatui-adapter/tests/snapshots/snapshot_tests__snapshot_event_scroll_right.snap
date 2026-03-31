@@ -1,0 +1,15 @@
+---
+source: crates/svelte-ratatui-adapter/tests/snapshot_tests.rs
+expression: js.unwrap()
+---
+(function(){
+    const el = document.elementFromPoint(40, 48) || document.activeElement || document.body;
+    el.dispatchEvent(new WheelEvent('wheel', {
+        clientX: 40,
+        clientY: 48,
+        deltaX: 120,
+        deltaY: 0,
+        bubbles: true,
+        cancelable: true
+    }));
+})()

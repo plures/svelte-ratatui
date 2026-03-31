@@ -1,0 +1,23 @@
+---
+source: crates/svelte-ratatui-adapter/tests/snapshot_tests.rs
+expression: js.unwrap()
+---
+(function(){
+    const el = document.elementFromPoint(32, 32);
+    if (el) {
+        el.dispatchEvent(new MouseEvent('mouseup', {
+            clientX: 32,
+            clientY: 32,
+            button: 2,
+            bubbles: true,
+            cancelable: true
+        }));
+        el.dispatchEvent(new MouseEvent('contextmenu', {
+            clientX: 32,
+            clientY: 32,
+            button: 2,
+            bubbles: true,
+            cancelable: true
+        }));
+    }
+})()

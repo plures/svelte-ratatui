@@ -55,32 +55,46 @@ fn key_to_js(key: &KeyEvent) -> Option<String> {
 }
 
 fn mouse_to_js(mouse: &MouseEvent) -> Option<String> {
+    // Convert terminal coordinates to approximate CSS pixel coordinates.
+    // Assumes ~8px per character width, ~16px per row.
+    let css_x = mouse.column as f64 * 8.0;
+    let css_y = mouse.row as f64 * 16.0;
+
     match mouse.kind {
-        MouseEventKind::Down(_) => {
-            let x = mouse.column;
-            let y = mouse.row;
-            // Convert terminal coordinates to approximate CSS pixel coordinates.
-            // Assumes ~8px per character width, ~16px per row.
-            let css_x = x as f64 * 8.0;
-            let css_y = y as f64 * 16.0;
-            Some(dom_reader::build_dispatch_click_js(css_x, css_y))
+        MouseEventKind::Down(button) => {
+            let btn = dom_reader::mouse_button_index(button);
+            Some(dom_reader::build_dispatch_mousedown_js(css_x, css_y, btn))
         }
-        MouseEventKind::ScrollUp => Some(
-            r#"(function(){
-    const target = document.activeElement || document.body;
-    target.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, bubbles: true }));
-})()"#
-                .to_string(),
-        ),
-        MouseEventKind::ScrollDown => Some(
-            r#"(function(){
-    const target = document.activeElement || document.body;
-    target.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true }));
-})()"#
-                .to_string(),
-        ),
+        MouseEventKind::Up(button) => {
+            let btn = dom_reader::mouse_button_index(button);
+            Some(dom_reader::build_dispatch_mouseup_js(css_x, css_y, btn))
+        }
+        MouseEventKind::ScrollUp => Some(build_wheel_js(css_x, css_y, 0.0, -120.0)),
+        MouseEventKind::ScrollDown => Some(build_wheel_js(css_x, css_y, 0.0, 120.0)),
+        MouseEventKind::ScrollLeft => Some(build_wheel_js(css_x, css_y, -120.0, 0.0)),
+        MouseEventKind::ScrollRight => Some(build_wheel_js(css_x, css_y, 120.0, 0.0)),
         _ => None,
     }
+}
+
+/// Build a `WheelEvent` dispatch snippet at the given coordinates.
+///
+/// Sets `cancelable: true` so that `event.preventDefault()` works in handlers,
+/// and includes `clientX`/`clientY` for completeness with other mouse events.
+fn build_wheel_js(x: f64, y: f64, delta_x: f64, delta_y: f64) -> String {
+    format!(
+        r#"(function(){{
+    const el = document.elementFromPoint({x}, {y}) || document.activeElement || document.body;
+    el.dispatchEvent(new WheelEvent('wheel', {{
+        clientX: {x},
+        clientY: {y},
+        deltaX: {delta_x},
+        deltaY: {delta_y},
+        bubbles: true,
+        cancelable: true
+    }}));
+}})()"#
+    )
 }
 
 #[cfg(test)]
