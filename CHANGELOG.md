@@ -1,3 +1,7 @@
+## [0.7.1] — 2026-03-31
+
+- fix(lifecycle): rewrite v9 — apply suggestions, merge, no nudges (b2bc5a3)
+
 ## [0.7.0] — 2026-03-31
 
 - feat(cli): add build, check, dev, and preview commands with watch mode (#17) (78c34c2)
