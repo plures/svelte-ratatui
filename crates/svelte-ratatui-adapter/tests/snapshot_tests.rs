@@ -234,6 +234,42 @@ fn snapshot_event_scroll_down() {
 }
 
 #[test]
+fn snapshot_event_scroll_left() {
+    let ev = Event::Mouse(MouseEvent {
+        kind: MouseEventKind::ScrollLeft,
+        column: 5,
+        row: 3,
+        modifiers: KeyModifiers::NONE,
+    });
+    let js = event_to_js(&ev);
+    insta::assert_snapshot!(js.unwrap());
+}
+
+#[test]
+fn snapshot_event_scroll_right() {
+    let ev = Event::Mouse(MouseEvent {
+        kind: MouseEventKind::ScrollRight,
+        column: 5,
+        row: 3,
+        modifiers: KeyModifiers::NONE,
+    });
+    let js = event_to_js(&ev);
+    insta::assert_snapshot!(js.unwrap());
+}
+
+#[test]
+fn snapshot_event_mouse_right_up() {
+    let ev = Event::Mouse(MouseEvent {
+        kind: MouseEventKind::Up(MouseButton::Right),
+        column: 4,
+        row: 2,
+        modifiers: KeyModifiers::NONE,
+    });
+    let js = event_to_js(&ev);
+    insta::assert_snapshot!(js.unwrap());
+}
+
+#[test]
 fn snapshot_event_f1_key() {
     let ev = Event::Key(KeyEvent::new(KeyCode::F(1), KeyModifiers::NONE));
     let js = event_to_js(&ev);

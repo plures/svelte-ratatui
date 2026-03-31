@@ -62,53 +62,39 @@ fn mouse_to_js(mouse: &MouseEvent) -> Option<String> {
 
     match mouse.kind {
         MouseEventKind::Down(button) => {
-            let btn = mouse_button_index(button);
+            let btn = dom_reader::mouse_button_index(button);
             Some(dom_reader::build_dispatch_mousedown_js(css_x, css_y, btn))
         }
         MouseEventKind::Up(button) => {
-            let btn = mouse_button_index(button);
+            let btn = dom_reader::mouse_button_index(button);
             Some(dom_reader::build_dispatch_mouseup_js(css_x, css_y, btn))
         }
-        MouseEventKind::ScrollUp => Some(
-            r#"(function(){
-    const target = document.activeElement || document.body;
-    target.dispatchEvent(new WheelEvent('wheel', { deltaY: -120, bubbles: true }));
-})()"#
-                .to_string(),
-        ),
-        MouseEventKind::ScrollDown => Some(
-            r#"(function(){
-    const target = document.activeElement || document.body;
-    target.dispatchEvent(new WheelEvent('wheel', { deltaY: 120, bubbles: true }));
-})()"#
-                .to_string(),
-        ),
-        MouseEventKind::ScrollLeft => Some(
-            r#"(function(){
-    const target = document.activeElement || document.body;
-    target.dispatchEvent(new WheelEvent('wheel', { deltaX: -120, bubbles: true }));
-})()"#
-                .to_string(),
-        ),
-        MouseEventKind::ScrollRight => Some(
-            r#"(function(){
-    const target = document.activeElement || document.body;
-    target.dispatchEvent(new WheelEvent('wheel', { deltaX: 120, bubbles: true }));
-})()"#
-                .to_string(),
-        ),
+        MouseEventKind::ScrollUp => Some(build_wheel_js(css_x, css_y, 0.0, -120.0)),
+        MouseEventKind::ScrollDown => Some(build_wheel_js(css_x, css_y, 0.0, 120.0)),
+        MouseEventKind::ScrollLeft => Some(build_wheel_js(css_x, css_y, -120.0, 0.0)),
+        MouseEventKind::ScrollRight => Some(build_wheel_js(css_x, css_y, 120.0, 0.0)),
         _ => None,
     }
 }
 
-/// Convert a crossterm [`MouseButton`] to the standard DOM `button` index.
-fn mouse_button_index(button: crossterm::event::MouseButton) -> u8 {
-    use crossterm::event::MouseButton;
-    match button {
-        MouseButton::Left => 0,
-        MouseButton::Middle => 1,
-        MouseButton::Right => 2,
-    }
+/// Build a `WheelEvent` dispatch snippet at the given coordinates.
+///
+/// Sets `cancelable: true` so that `event.preventDefault()` works in handlers,
+/// and includes `clientX`/`clientY` for completeness with other mouse events.
+fn build_wheel_js(x: f64, y: f64, delta_x: f64, delta_y: f64) -> String {
+    format!(
+        r#"(function(){{
+    const el = document.elementFromPoint({x}, {y}) || document.activeElement || document.body;
+    el.dispatchEvent(new WheelEvent('wheel', {{
+        clientX: {x},
+        clientY: {y},
+        deltaX: {delta_x},
+        deltaY: {delta_y},
+        bubbles: true,
+        cancelable: true
+    }}));
+}})()"#
+    )
 }
 
 #[cfg(test)]

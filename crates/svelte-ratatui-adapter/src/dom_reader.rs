@@ -175,12 +175,21 @@ pub fn build_dispatch_mousedown_js(x: f64, y: f64, button: u8) -> String {
     )
 }
 
-/// Build JavaScript for dispatching a `mouseup` and `click` event sequence at
+/// Build JavaScript for dispatching a `mouseup` and follow-up event sequence at
 /// viewport coordinates — matching the browser's natural button-release order.
+///
+/// - Button 0 (left): `mouseup` + `click`
+/// - Button 1 (middle): `mouseup` + `auxclick`
+/// - Button 2 (right): `mouseup` + `contextmenu`
 ///
 /// `x` and `y` are CSS pixel coordinates. `button` is the standard DOM button
 /// index (0 = left, 1 = middle, 2 = right).
 pub fn build_dispatch_mouseup_js(x: f64, y: f64, button: u8) -> String {
+    let follow_up = match button {
+        0 => "click",
+        1 => "auxclick",
+        _ => "contextmenu",
+    };
     format!(
         r#"(function(){{
     const el = document.elementFromPoint({x}, {y});
@@ -192,7 +201,7 @@ pub fn build_dispatch_mouseup_js(x: f64, y: f64, button: u8) -> String {
             bubbles: true,
             cancelable: true
         }}));
-        el.dispatchEvent(new MouseEvent('click', {{
+        el.dispatchEvent(new MouseEvent('{follow_up}', {{
             clientX: {x},
             clientY: {y},
             button: {button},
@@ -204,7 +213,20 @@ pub fn build_dispatch_mouseup_js(x: f64, y: f64, button: u8) -> String {
     )
 }
 
-/// JavaScript for dispatching a focus event to the next focusable element.
+/// Convert a crossterm [`crossterm::event::MouseButton`] to the standard DOM
+/// `button` index (0 = left, 1 = middle, 2 = right).
+///
+/// This is shared by both `input.rs` (for coordinate translation) and any
+/// caller that builds mouse event JS snippets directly.
+pub fn mouse_button_index(button: crossterm::event::MouseButton) -> u8 {
+    use crossterm::event::MouseButton;
+    match button {
+        MouseButton::Left => 0,
+        MouseButton::Middle => 1,
+        MouseButton::Right => 2,
+    }
+}
+
 pub const FOCUS_NEXT_JS: &str = r#"
 (function() {
     const focusable = Array.from(document.querySelectorAll(
