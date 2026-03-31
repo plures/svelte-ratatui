@@ -1,3 +1,9 @@
+## [0.6.0] — 2026-03-31
+
+- feat(adapter): implement keyboard and mouse event translation (#16) (94c6510)
+- test: add snapshot-based rendering tests for compiler and adapter (#15) (2d01159)
+- chore: standardize license to MIT (261c9ff)
+
 ## [0.5.0] — 2026-03-28
 
 - feat(compiler): expand widget mapping coverage for common Svelte/HTML elements (#14) (e38e0fc)
