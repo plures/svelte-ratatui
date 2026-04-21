@@ -222,6 +222,8 @@ impl<'a> HtmlParser<'a> {
                 let saved = self.pos;
                 self.skip_whitespace();
                 let skipped = &self.input[saved..self.pos];
+                // Preserve horizontal whitespace (e.g. between inline elements),
+                // but drop indentation-only runs before the next opening tag.
                 if !skipped.contains('\n') || !self.starts_with("<") {
                     self.pos = saved;
                 }
@@ -402,12 +404,12 @@ impl<'a> HtmlParser<'a> {
 }
 
 fn decode_entities(s: &str) -> String {
-    s.replace("&lt;", "<")
+    s.replace("&amp;", "&")
+        .replace("&lt;", "<")
         .replace("&gt;", ">")
         .replace("&quot;", "\"")
         .replace("&#39;", "'")
         .replace("&nbsp;", " ")
-        .replace("&amp;", "&")
 }
 
 #[cfg(test)]
@@ -457,13 +459,13 @@ mod tests {
         let src = "<div><h1>Hello</h1><p>World</p></div>";
         let out = compile(src).expect("compile should succeed for static html");
 
-        let unique = SystemTime::now()
+        let timestamp_nanos = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("current time should be after unix epoch")
             .as_nanos();
         let tmp = std::env::temp_dir();
-        let source_path = tmp.join(format!("svelte-ratatui-generated-{unique}.rs"));
-        let output_path = tmp.join(format!("svelte-ratatui-generated-{unique}.rlib"));
+        let source_path = tmp.join(format!("svelte-ratatui-generated-{timestamp_nanos}.rs"));
+        let output_path = tmp.join(format!("svelte-ratatui-generated-{timestamp_nanos}.rlib"));
 
         fs::write(&source_path, out).expect("should write generated source file");
 
