@@ -1,3 +1,7 @@
+## [0.10.0] — 2026-04-21
+
+- feat(compiler): implement Svelte → Rust compilation pipeline (4793849)
+
 ## [0.9.1] — 2026-04-21
 
 - fix(tauri-plugin): add move keyword to setup closure (1d2e028)
