@@ -1,3 +1,7 @@
+## [0.9.1] — 2026-04-21
+
+- fix(tauri-plugin): add move keyword to setup closure (1d2e028)
+
 ## [0.9.0] — 2026-04-18
 
 - feat(lifecycle v12): auto-release when milestone completes (528f096)
