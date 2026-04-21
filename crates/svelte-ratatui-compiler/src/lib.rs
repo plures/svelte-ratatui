@@ -3,6 +3,7 @@
 //! Transforms Svelte component ASTs into ratatui widget trees.
 //! See design doc: docs/RUNES-TRANSLATION.md
 
+pub mod codegen;
 pub mod dialect_check;
 pub mod ir;
 pub mod mapping;
