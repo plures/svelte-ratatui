@@ -1,3 +1,7 @@
+## [0.11.0] — 2026-04-23
+
+- feat(lifecycle): milestone-close triggers roadmap-aware release (d08669e)
+
 ## [0.10.0] — 2026-04-21
 
 - feat(compiler): implement Svelte → Rust compilation pipeline (4793849)
