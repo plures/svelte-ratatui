@@ -1,3 +1,16 @@
+## [0.12.0] — 2026-07-24
+
+- ci(release): trigger release on merge to main (#23) (361b38e)
+- ci: migrate Tech Doc Writer to shared reusable (b3fc6ed)
+- fix(ci): repair tech-doc-writer YAML indentation / remove empty workflow (831f5f4)
+- ci: add security-aware Dependabot auto-merge workflow (org backfill) (071c8eb)
+- ci: change release trigger from push-to-main to tag-only (35d842f)
+- refactor: replace inline lifecycle with reusable workflow call (5d500a1)
+- docs: refresh ROADMAP.md with OASIS strategic alignment (480e286)
+- docs: update copilot-instructions with praxis, design-dojo, automation rules (98e5f16)
+- feat(release): add target_version input for milestone-driven releases (7309a30)
+- feat(lifecycle): milestone-close triggers roadmap-aware release (d08669e)
+
 ## [0.10.0] — 2026-04-21
 
 - feat(compiler): implement Svelte → Rust compilation pipeline (4793849)
